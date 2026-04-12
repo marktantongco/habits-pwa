@@ -134,3 +134,165 @@
 textarea {
   field-sizing: content;
 }
+
+/* ==================== THEME SYSTEM ==================== */
+
+/* Theme: Midnight Gold (default - dark) */
+[data-theme="midnight-gold"] {
+  --th-bg: #000000;
+  --th-bg-elevated: #0a0a0a;
+  --th-bg-card: #111111;
+  --th-bg-input: #1a1a1a;
+  --th-border: #2a2a2a;
+  --th-border-hover: #3a3a3a;
+  --th-text: #ffffff;
+  --th-text-secondary: #a0a0a0;
+  --th-text-muted: #666666;
+  --th-accent: #FFEA00;
+  --th-accent-hover: #f5dc00;
+  --th-accent-dim: rgba(255, 234, 0, 0.1);
+  --th-success: #22c55e;
+  --th-danger: #ef4444;
+  --th-info: #3b82f6;
+  --th-warning: #eab308;
+}
+
+/* Theme: Ocean Deep (dark blue + cyan) */
+[data-theme="ocean-deep"] {
+  --th-bg: #0a0f1a;
+  --th-bg-elevated: #0f1629;
+  --th-bg-card: #141d33;
+  --th-bg-input: #1a2540;
+  --th-border: #1e3050;
+  --th-border-hover: #2a4060;
+  --th-text: #e8f4fd;
+  --th-text-secondary: #7da8c9;
+  --th-text-muted: #4a7a9b;
+  --th-accent: #00d4ff;
+  --th-accent-hover: #00b8e6;
+  --th-accent-dim: rgba(0, 212, 255, 0.1);
+  --th-success: #00e676;
+  --th-danger: #ff5252;
+  --th-info: #448aff;
+  --th-warning: #ffab40;
+}
+
+/* Theme: Forest Calm (dark green + lime) */
+[data-theme="forest-calm"] {
+  --th-bg: #0a110a;
+  --th-bg-elevated: #0f1a0f;
+  --th-bg-card: #142014;
+  --th-bg-input: #1a2a1a;
+  --th-border: #1e3a1e;
+  --th-border-hover: #2a4a2a;
+  --th-text: #e8f5e9;
+  --th-text-secondary: #81c784;
+  --th-text-muted: #4caf50;
+  --th-accent: #76ff03;
+  --th-accent-hover: #64dd17;
+  --th-accent-dim: rgba(118, 255, 3, 0.1);
+  --th-success: #00e676;
+  --th-danger: #ff5252;
+  --th-info: #69f0ae;
+  --th-warning: #ffd740;
+}
+
+/* Theme: Sunset Ember (dark warm + orange) */
+[data-theme="sunset-ember"] {
+  --th-bg: #1a0a0a;
+  --th-bg-elevated: #220f0f;
+  --th-bg-card: #2a1414;
+  --th-bg-input: #331a1a;
+  --th-border: #4a2020;
+  --th-border-hover: #5a2a2a;
+  --th-text: #fff5f0;
+  --th-text-secondary: #d4a088;
+  --th-text-muted: #a07060;
+  --th-accent: #ff6d00;
+  --th-accent-hover: #e65100;
+  --th-accent-dim: rgba(255, 109, 0, 0.1);
+  --th-success: #66bb6a;
+  --th-danger: #ef5350;
+  --th-info: #42a5f5;
+  --th-warning: #ffa726;
+}
+
+/* Theme: Lavender Dream (dark purple + pink) */
+[data-theme="lavender-dream"] {
+  --th-bg: #0f0a1a;
+  --th-bg-elevated: #160f29;
+  --th-bg-card: #1e1433;
+  --th-bg-input: #251a40;
+  --th-border: #302050;
+  --th-border-hover: #3d2a60;
+  --th-text: #f3e8ff;
+  --th-text-secondary: #b794d4;
+  --th-text-muted: #8b6aa0;
+  --th-accent: #e040fb;
+  --th-accent-hover: #c026d3;
+  --th-accent-dim: rgba(224, 64, 251, 0.1);
+  --th-success: #69f0ae;
+  --th-danger: #ff5252;
+  --th-info: #7c4dff;
+  --th-warning: #ffab40;
+}
+
+/* Theme: Arctic Light (light theme) */
+[data-theme="arctic-light"] {
+  --th-bg: #f8fafc;
+  --th-bg-elevated: #ffffff;
+  --th-bg-card: #ffffff;
+  --th-bg-input: #f1f5f9;
+  --th-border: #e2e8f0;
+  --th-border-hover: #cbd5e1;
+  --th-text: #0f172a;
+  --th-text-secondary: #475569;
+  --th-text-muted: #94a3b8;
+  --th-accent: #0ea5e9;
+  --th-accent-hover: #0284c7;
+  --th-accent-dim: rgba(14, 165, 233, 0.1);
+  --th-success: #16a34a;
+  --th-danger: #dc2626;
+  --th-info: #2563eb;
+  --th-warning: #d97706;
+}
+
+/* ==================== THEME UTILITY CLASSES ==================== */
+.th-bg { background-color: var(--th-bg); }
+.th-bg-elevated { background-color: var(--th-bg-elevated); }
+.th-bg-card { background-color: var(--th-bg-card); }
+.th-bg-input { background-color: var(--th-bg-input); }
+.th-border { border-color: var(--th-border); }
+.th-border-accent { border-color: var(--th-accent); }
+.th-text { color: var(--th-text); }
+.th-text-secondary { color: var(--th-text-secondary); }
+.th-text-muted { color: var(--th-text-muted); }
+.th-text-accent { color: var(--th-accent); }
+.th-accent { color: var(--th-accent); }
+.th-accent-bg { background-color: var(--th-accent); }
+
+/* Smooth theme transitions */
+*, *::before, *::after {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+}
+
+/* Heading font override */
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+/* Body text */
+body, input, textarea, select, button, .font-body {
+  font-family: 'Inter', sans-serif;
+}
+
+/* ==================== SHIMMER LOADING ==================== */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, var(--th-bg-card) 25%, var(--th-bg-elevated) 50%, var(--th-bg-card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}

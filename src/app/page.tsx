@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import {
   Check,
   BookOpen,
@@ -18,7 +18,18 @@ import {
   Mail,
   AlertCircle,
   Users,
+  Palette,
 } from 'lucide-react';
+
+// ==================== THEME DATA ====================
+const THEMES = [
+  { id: 'midnight-gold', label: 'Midnight Gold', color: '#FFEA00', bg: '#000000' },
+  { id: 'ocean-deep', label: 'Ocean Deep', color: '#00d4ff', bg: '#0a0f1a' },
+  { id: 'forest-calm', label: 'Forest Calm', color: '#76ff03', bg: '#0a110a' },
+  { id: 'sunset-ember', label: 'Sunset Ember', color: '#ff6d00', bg: '#1a0a0a' },
+  { id: 'lavender-dream', label: 'Lavender Dream', color: '#e040fb', bg: '#0f0a1a' },
+  { id: 'arctic-light', label: 'Arctic Light', color: '#0ea5e9', bg: '#f8fafc' },
+];
 
 // ==================== TYPES ====================
 interface SoapData {
@@ -122,7 +133,65 @@ const SOAP_FIELDS: { key: keyof SoapData; label: string }[] = [
   { key: 'prayer', label: 'P: Prayer \u2014 Pray your response to God' },
 ];
 
-const TEACHER_PASSWORD = 'habits2024';
+const TEACHER_PASSWORD = '/123';
+
+// ==================== THEME SELECTOR COMPONENT ====================
+function ThemeSelector({ currentTheme, setTheme }: { currentTheme: string; setTheme: (t: string) => void }) {
+  const [open, setOpen] = useState(false);
+
+  const handleSelect = (themeId: string) => {
+    setTheme(themeId);
+    setOpen(false);
+  };
+
+  return (
+    <div className="fixed bottom-6 right-6 z-[70]">
+      {open && (
+        <div
+          className="absolute bottom-16 right-0 p-4 rounded-xl shadow-lg shadow-black/30 border-2"
+          style={{
+            backgroundColor: 'var(--th-bg-card)',
+            borderColor: 'var(--th-border)',
+          }}
+        >
+          <p className="text-xs font-bold uppercase mb-3" style={{ color: 'var(--th-text-secondary)' }}>Choose Theme</p>
+          <div className="grid grid-cols-2 gap-2">
+            {THEMES.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => handleSelect(t.id)}
+                className="flex items-center gap-2 p-2 rounded-lg transition-all active:scale-[0.97]"
+                style={{
+                  backgroundColor: t.id === currentTheme ? 'var(--th-accent-dim)' : 'transparent',
+                  border: t.id === currentTheme ? '2px solid var(--th-accent)' : '2px solid transparent',
+                }}
+              >
+                <span
+                  className="w-6 h-6 rounded-full flex-shrink-0 border-2"
+                  style={{ backgroundColor: t.color, borderColor: t.bg }}
+                />
+                <span
+                  className="text-xs font-bold text-left leading-tight"
+                  style={{ color: 'var(--th-text)' }}
+                >
+                  {t.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg shadow-black/30 transition-transform active:scale-[0.95]"
+        style={{ backgroundColor: 'var(--th-accent)', color: 'var(--th-bg)' }}
+        aria-label="Change theme"
+      >
+        <Palette className="h-5 w-5" />
+      </button>
+    </div>
+  );
+}
 
 // ==================== MODAL COMPONENTS ====================
 function ReflectBackModal({
@@ -138,33 +207,33 @@ function ReflectBackModal({
 }) {
   if (!show) return null;
   return (
-    <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-black border-4 border-yellow-300 p-4 sm:p-6 max-w-4xl w-full my-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
+      <div className="rounded-xl p-4 sm:p-6 max-w-4xl w-full my-8 shadow-lg shadow-black/30 border-2" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl sm:text-2xl font-black" style={{ color: '#FFEA00' }}>
+          <h2 className="text-xl sm:text-2xl font-black" style={{ color: 'var(--th-accent)' }}>
             WEEK {currentWeek} REFLECTION
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-900 rounded">
-            <X className="h-6 w-6" />
+          <button onClick={onClose} className="p-2 rounded-lg transition-colors" style={{ backgroundColor: 'var(--th-bg-elevated)' }}>
+            <X className="h-6 w-6" style={{ color: 'var(--th-text)' }} />
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
           {DAYS.map((day) => (
-            <div key={day} className="bg-gray-900 border-2 border-gray-700 p-3 sm:p-4">
-              <p className="text-sm font-bold text-yellow-300 mb-2">{day.toUpperCase()}</p>
-              <div className="text-xs space-y-2 text-gray-300">
+            <div key={day} className="rounded-lg p-3 sm:p-4 border-2" style={{ backgroundColor: 'var(--th-bg-elevated)', borderColor: 'var(--th-border)' }}>
+              <p className="text-sm font-bold mb-2" style={{ color: 'var(--th-accent)' }}>{day.toUpperCase()}</p>
+              <div className="text-xs space-y-2" style={{ color: 'var(--th-text-secondary)' }}>
                 <p>
-                  <span className="text-yellow-300">S:</span>{' '}
+                  <span style={{ color: 'var(--th-accent)' }}>S:</span>{' '}
                   {dailyData[day]?.soap?.scripture?.slice(0, 40)}
                   {dailyData[day]?.soap?.scripture?.length > 40 ? '...' : ''}
                 </p>
                 <p>
-                  <span className="text-yellow-300">O:</span>{' '}
+                  <span style={{ color: 'var(--th-accent)' }}>O:</span>{' '}
                   {dailyData[day]?.soap?.observation?.slice(0, 40)}
                   {dailyData[day]?.soap?.observation?.length > 40 ? '...' : ''}
                 </p>
                 <p>
-                  <span className="text-yellow-300">A:</span>{' '}
+                  <span style={{ color: 'var(--th-accent)' }}>A:</span>{' '}
                   {dailyData[day]?.soap?.application?.slice(0, 40)}
                   {dailyData[day]?.soap?.application?.length > 40 ? '...' : ''}
                 </p>
@@ -172,7 +241,7 @@ function ReflectBackModal({
             </div>
           ))}
         </div>
-        <div className="mt-6 p-4 bg-gray-950 border-2 border-gray-700 text-xs text-gray-400">
+        <div className="mt-6 p-4 rounded-lg border-2 text-xs" style={{ backgroundColor: 'var(--th-bg-card)', borderColor: 'var(--th-border)', color: 'var(--th-text-muted)' }}>
           <p>Growth Arc: {DAYS.length} days of spiritual reflection across John 3:1-21</p>
         </div>
       </div>
@@ -191,14 +260,14 @@ function BadgesModal({
 }) {
   if (!show) return null;
   return (
-    <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
-      <div className="bg-black border-4 border-yellow-300 p-4 sm:p-6 max-w-md w-full">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
+      <div className="rounded-xl p-4 sm:p-6 max-w-md w-full shadow-lg shadow-black/30 border-2" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl sm:text-2xl font-black" style={{ color: '#FFEA00' }}>
+          <h2 className="text-xl sm:text-2xl font-black" style={{ color: 'var(--th-accent)' }}>
             YOUR BADGES
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-900 rounded">
-            <X className="h-6 w-6" />
+          <button onClick={onClose} className="p-2 rounded-lg transition-colors" style={{ backgroundColor: 'var(--th-bg-elevated)' }}>
+            <X className="h-6 w-6" style={{ color: 'var(--th-text)' }} />
           </button>
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -207,20 +276,23 @@ function BadgesModal({
             return (
               <div
                 key={badge.id}
-                className={`p-4 border-2 text-center ${
-                  isEarned ? 'border-yellow-300 bg-yellow-300/10' : 'border-gray-700 bg-gray-950 opacity-50'
-                }`}
+                className="p-4 border-2 text-center rounded-xl"
+                style={{
+                  borderColor: isEarned ? 'var(--th-accent)' : 'var(--th-border)',
+                  backgroundColor: isEarned ? 'var(--th-accent-dim)' : 'var(--th-bg-card)',
+                  opacity: isEarned ? 1 : 0.5,
+                }}
               >
                 <p className="text-3xl mb-2">{isEarned ? badge.emoji : '?'}</p>
-                <p className={`text-sm font-bold ${isEarned ? 'text-yellow-300' : 'text-gray-500'}`}>
+                <p className="text-sm font-bold" style={{ color: isEarned ? 'var(--th-accent)' : 'var(--th-text-muted)' }}>
                   {badge.label}
                 </p>
-                {isEarned && <p className="text-xs text-green-400 mt-1">Earned!</p>}
+                {isEarned && <p className="text-xs mt-1" style={{ color: 'var(--th-success)' }}>Earned!</p>}
               </div>
             );
           })}
         </div>
-        <div className="mt-6 p-3 bg-gray-950 border border-gray-700 text-xs text-gray-400">
+        <div className="mt-6 p-3 rounded-lg border text-xs" style={{ backgroundColor: 'var(--th-bg-card)', borderColor: 'var(--th-border)', color: 'var(--th-text-muted)' }}>
           <p>Complete activities to unlock badges. Each badge represents a milestone in your spiritual journey!</p>
         </div>
       </div>
@@ -241,44 +313,44 @@ function MemorizationMeterModal({
 }) {
   if (!show) return null;
   return (
-    <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
-      <div className="bg-black border-4 border-yellow-300 p-4 sm:p-6 max-w-md w-full">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
+      <div className="rounded-xl p-4 sm:p-6 max-w-md w-full shadow-lg shadow-black/30 border-2" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl sm:text-2xl font-black" style={{ color: '#FFEA00' }}>
+          <h2 className="text-xl sm:text-2xl font-black" style={{ color: 'var(--th-accent)' }}>
             MEMORIZATION METER
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-900 rounded">
-            <X className="h-6 w-6" />
+          <button onClick={onClose} className="p-2 rounded-lg transition-colors" style={{ backgroundColor: 'var(--th-bg-elevated)' }}>
+            <X className="h-6 w-6" style={{ color: 'var(--th-text)' }} />
           </button>
         </div>
         <div className="text-center mb-6">
-          <p className="text-5xl font-black mb-2" style={{ color: '#FFEA00' }}>
+          <p className="text-5xl font-black mb-2" style={{ color: 'var(--th-accent)' }}>
             {score}%
           </p>
-          <p className="text-sm text-gray-400">Average quiz accuracy across all attempts</p>
+          <p className="text-sm" style={{ color: 'var(--th-text-secondary)' }}>Average quiz accuracy across all attempts</p>
         </div>
-        <div className="w-full bg-gray-800 h-4 rounded mb-6">
+        <div className="w-full h-4 rounded-lg mb-6 overflow-hidden" style={{ backgroundColor: 'var(--th-bg-input)' }}>
           <div
-            className="h-4 rounded transition-all duration-500"
+            className="h-4 rounded-lg transition-all duration-500"
             style={{
               width: `${score}%`,
-              backgroundColor: score >= 80 ? '#22c55e' : score >= 50 ? '#FFEA00' : '#ef4444',
+              backgroundColor: score >= 80 ? 'var(--th-success)' : score >= 50 ? 'var(--th-accent)' : 'var(--th-danger)',
             }}
           />
         </div>
-        <div className="space-y-2 text-xs text-gray-400">
+        <div className="space-y-2 text-xs" style={{ color: 'var(--th-text-secondary)' }}>
           <p>
-            <span className="text-yellow-300">0-49%:</span> Keep practicing! Repetition builds memory.
+            <span style={{ color: 'var(--th-accent)' }}>0-49%:</span> Keep practicing! Repetition builds memory.
           </p>
           <p>
-            <span className="text-yellow-300">50-79%:</span> Getting there! You&apos;re making progress.
+            <span style={{ color: 'var(--th-accent)' }}>50-79%:</span> Getting there! You&apos;re making progress.
           </p>
           <p>
-            <span className="text-yellow-300">80-100%:</span> Memory Master! You&apos;ve memorized the verse.
+            <span style={{ color: 'var(--th-accent)' }}>80-100%:</span> Memory Master! You&apos;ve memorized the verse.
           </p>
         </div>
         {attemptCount > 0 && (
-          <div className="mt-4 p-3 bg-gray-950 border border-gray-700 text-xs text-gray-500">
+          <div className="mt-4 p-3 rounded-lg border text-xs" style={{ backgroundColor: 'var(--th-bg-card)', borderColor: 'var(--th-border)', color: 'var(--th-text-muted)' }}>
             <p>Attempts: {attemptCount} days completed</p>
           </div>
         )}
@@ -296,10 +368,10 @@ function StudentNameModal({
 }) {
   const [name, setName] = useState('');
   return (
-    <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-      <div className="bg-black border-4 border-yellow-300 p-6 sm:p-8 max-w-sm w-full">
-        <h2 className="text-2xl font-black mb-2" style={{ color: '#FFEA00' }}>Welcome!</h2>
-        <p className="text-gray-400 mb-6 text-sm">What&apos;s your name? This helps your teacher track your progress.</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}>
+      <div className="rounded-xl p-6 sm:p-8 max-w-sm w-full shadow-lg shadow-black/30 border-2" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+        <h2 className="text-2xl font-black mb-2" style={{ color: 'var(--th-accent)' }}>Welcome!</h2>
+        <p className="mb-6 text-sm" style={{ color: 'var(--th-text-secondary)' }}>What&apos;s your name? This helps your teacher track your progress.</p>
         <input
           type="text"
           value={name}
@@ -310,12 +382,19 @@ function StudentNameModal({
             }
           }}
           placeholder="Enter your name"
-          className="w-full bg-gray-900 border-2 border-gray-700 text-white px-4 py-3 mb-4 focus:border-yellow-300 focus:outline-none"
+          className="w-full px-4 py-3 mb-4 rounded-lg border-2 focus:outline-none focus:ring-2"
+          style={{
+            backgroundColor: 'var(--th-bg-input)',
+            borderColor: 'var(--th-border)',
+            color: 'var(--th-text)',
+            ['--tw-ring-color' as string]: 'var(--th-accent)',
+          }}
           autoFocus
         />
         <button
           onClick={() => name.trim() && onClose(name.trim())}
-          className="w-full bg-yellow-300 text-black font-bold uppercase py-3 hover:bg-yellow-200 transition-colors disabled:opacity-40"
+          className="w-full font-bold uppercase py-3 rounded-lg transition-colors active:scale-[0.98] disabled:opacity-40"
+          style={{ backgroundColor: 'var(--th-accent)', color: 'var(--th-bg)' }}
           disabled={!name.trim()}
         >
           Continue
@@ -335,15 +414,15 @@ function TeacherLoginModal({
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
   return (
-    <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-      <div className="bg-black border-4 border-yellow-300 p-6 sm:p-8 max-w-sm w-full">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}>
+      <div className="rounded-xl p-6 sm:p-8 max-w-sm w-full shadow-lg shadow-black/30 border-2" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-black" style={{ color: '#FFEA00' }}>Teacher Access</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-900 rounded">
-            <X className="h-6 w-6" />
+          <h2 className="text-2xl font-black" style={{ color: 'var(--th-accent)' }}>Teacher Access</h2>
+          <button onClick={onClose} className="p-2 rounded-lg transition-colors" style={{ backgroundColor: 'var(--th-bg-elevated)' }}>
+            <X className="h-6 w-6" style={{ color: 'var(--th-text)' }} />
           </button>
         </div>
-        <p className="text-gray-400 mb-4 text-sm">Enter the teacher password to view the dashboard.</p>
+        <p className="mb-4 text-sm" style={{ color: 'var(--th-text-secondary)' }}>Enter the teacher password to view the dashboard.</p>
         <input
           type="password"
           value={password}
@@ -355,16 +434,23 @@ function TeacherLoginModal({
             }
           }}
           placeholder="Password"
-          className={`w-full bg-gray-900 border-2 ${error ? 'border-red-500' : 'border-gray-700'} text-white px-4 py-3 mb-4 focus:border-yellow-300 focus:outline-none`}
+          className="w-full px-4 py-3 mb-4 rounded-lg border-2 focus:outline-none focus:ring-2"
+          style={{
+            backgroundColor: 'var(--th-bg-input)',
+            borderColor: error ? 'var(--th-danger)' : 'var(--th-border)',
+            color: 'var(--th-text)',
+            ['--tw-ring-color' as string]: 'var(--th-accent)',
+          }}
           autoFocus
         />
-        {error && <p className="text-red-400 text-xs mb-4">Incorrect password. Try again.</p>}
+        {error && <p className="text-xs mb-4" style={{ color: 'var(--th-danger)' }}>Incorrect password. Try again.</p>}
         <button
           onClick={() => {
             if (password === TEACHER_PASSWORD) onLogin();
             else setError(true);
           }}
-          className="w-full bg-yellow-300 text-black font-bold uppercase py-3 hover:bg-yellow-200 transition-colors"
+          className="w-full font-bold uppercase py-3 rounded-lg transition-colors active:scale-[0.98]"
+          style={{ backgroundColor: 'var(--th-accent)', color: 'var(--th-bg)' }}
         >
           Login
         </button>
@@ -436,17 +522,17 @@ function TeacherDashboardPanel({
   }, [currentWeek]);
 
   const calculateBadges = (studentData: StudentInfo) => {
-    const badges: Badge[] = [];
+    const bdgs: Badge[] = [];
     const completedDays = DAYS.filter(
       (d) => studentData.weekData?.[d]?.readingComplete && Object.values(studentData.weekData?.[d]?.soap || {}).some((v) => v)
     ).length;
-    if (completedDays === 7) badges.push(ALL_BADGES[0]);
-    if (completedDays >= 5) badges.push(ALL_BADGES[1]);
+    if (completedDays === 7) bdgs.push(ALL_BADGES[0]);
+    if (completedDays >= 5) bdgs.push(ALL_BADGES[1]);
     const quizScores = Object.values(studentData.quizHistory || {}).filter((q) => q?.accuracy).map((q) => q.accuracy);
     const avgQuiz = quizScores.length > 0 ? Math.round(quizScores.reduce((a, b) => a + b) / quizScores.length) : 0;
-    if (avgQuiz >= 80) badges.push(ALL_BADGES[2]);
-    if (studentData.streak >= 2) badges.push(ALL_BADGES[3]);
-    return badges;
+    if (avgQuiz >= 80) bdgs.push(ALL_BADGES[2]);
+    if (studentData.streak >= 2) bdgs.push(ALL_BADGES[3]);
+    return bdgs;
   };
 
   const calculateMetrics = () => {
@@ -486,7 +572,7 @@ function TeacherDashboardPanel({
   const generateStudentReport = (_studentId: string, studentData: StudentInfo) => {
     const completedDays = DAYS.filter((d) => studentData.weekData?.[d]?.readingComplete).length;
     const completionPct = Math.round((completedDays / DAYS.length) * 100);
-    const badges = calculateBadges(studentData);
+    const bdgs = calculateBadges(studentData);
     const quizScores = Object.values(studentData.quizHistory || {}).filter((q) => q?.accuracy).map((q) => q.accuracy);
     const avgQuiz = quizScores.length > 0 ? Math.round(quizScores.reduce((a, b) => a + b) / quizScores.length) : 0;
 
@@ -501,7 +587,7 @@ Days Completed: ${completedDays}/7 (${completionPct}%)
 Bible: John 1-7
 
 === ACHIEVEMENTS ===
-${badges.length > 0 ? badges.map((b) => `${b.emoji} ${b.label}`).join('\n') : 'Keep going! Badges unlock as you progress.'}
+${bdgs.length > 0 ? bdgs.map((b) => `${b.emoji} ${b.label}`).join('\n') : 'Keep going! Badges unlock as you progress.'}
 
 === SPIRITUAL REFLECTIONS ===
 ${DAYS.map((day) => {
@@ -541,15 +627,15 @@ This report generated by Habits Class`.trim();
   const metrics = calculateMetrics();
 
   return (
-    <div className="min-h-screen bg-black text-white pb-[env(safe-area-inset-bottom)]" style={{ fontFamily: "'Syne', sans-serif" }}>
+    <div className="min-h-screen pb-[env(safe-area-inset-bottom)]" style={{ backgroundColor: 'var(--th-bg)', color: 'var(--th-text)' }}>
       {/* Badge Notifications */}
       {badgeNotifications.length > 0 && (
         <div className="fixed top-20 right-4 z-[60] space-y-2 max-w-xs sm:max-w-sm">
           {badgeNotifications.map((notif, idx) => (
-            <div key={idx} className="bg-yellow-900 border-4 border-yellow-300 p-3 sm:p-4 rounded animate-pulse">
-              <p className="font-black text-yellow-300 text-sm sm:text-base">{notif.emoji} {notif.label}</p>
-              <p className="text-xs text-gray-300">{notif.studentName} just unlocked a badge!</p>
-              <button onClick={() => setBadgeNotifications((prev) => prev.filter((_, i) => i !== idx))} className="mt-1 text-xs underline text-yellow-400 hover:text-yellow-300">
+            <div key={idx} className="p-3 sm:p-4 rounded-xl border-2 animate-pulse" style={{ borderColor: 'var(--th-accent)', backgroundColor: 'var(--th-accent-dim)' }}>
+              <p className="font-black text-sm sm:text-base" style={{ color: 'var(--th-accent)' }}>{notif.emoji} {notif.label}</p>
+              <p className="text-xs" style={{ color: 'var(--th-text-secondary)' }}>{notif.studentName} just unlocked a badge!</p>
+              <button onClick={() => setBadgeNotifications((prev) => prev.filter((_, i) => i !== idx))} className="mt-1 text-xs underline" style={{ color: 'var(--th-accent)' }}>
                 Dismiss
               </button>
             </div>
@@ -559,21 +645,21 @@ This report generated by Habits Class`.trim();
 
       {/* Parent Email Modal */}
       {parentEmailMode && selectedStudentForEmail && (
-        <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
-          <div className="bg-black border-4 border-yellow-300 p-6 sm:p-8 max-w-md w-full">
-            <h2 className="text-xl sm:text-2xl font-black mb-6" style={{ color: '#FFEA00' }}>Send to Parents</h2>
-            <div className="bg-gray-900 border-2 border-gray-700 p-4 mb-6 rounded">
-              <p className="text-sm text-gray-400 mb-2">Student: <span className="font-bold text-white">{selectedStudentForEmail[1].name}</span></p>
-              <p className="text-sm text-gray-400">Email: <span className="font-bold text-white">{selectedStudentForEmail[1].email || 'Not provided'}</span></p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
+          <div className="rounded-xl p-6 sm:p-8 max-w-md w-full shadow-lg shadow-black/30 border-2" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+            <h2 className="text-xl sm:text-2xl font-black mb-6" style={{ color: 'var(--th-accent)' }}>Send to Parents</h2>
+            <div className="rounded-lg p-4 mb-6 border-2" style={{ backgroundColor: 'var(--th-bg-elevated)', borderColor: 'var(--th-border)' }}>
+              <p className="text-sm mb-2" style={{ color: 'var(--th-text-secondary)' }}>Student: <span className="font-bold" style={{ color: 'var(--th-text)' }}>{selectedStudentForEmail[1].name}</span></p>
+              <p className="text-sm" style={{ color: 'var(--th-text-secondary)' }}>Email: <span className="font-bold" style={{ color: 'var(--th-text)' }}>{selectedStudentForEmail[1].email || 'Not provided'}</span></p>
             </div>
             <div className="space-y-3">
-              <button onClick={() => sendParentEmail(selectedStudentForEmail[0], selectedStudentForEmail[1])} className="w-full bg-green-600 hover:bg-green-500 text-white font-bold uppercase py-3 flex items-center justify-center gap-2">
+              <button onClick={() => sendParentEmail(selectedStudentForEmail[0], selectedStudentForEmail[1])} className="w-full font-bold uppercase py-3 rounded-lg flex items-center justify-center gap-2 transition-colors active:scale-[0.98]" style={{ backgroundColor: 'var(--th-success)', color: '#fff' }}>
                 <Mail className="h-4 w-4" /> Open Email Client
               </button>
-              <button onClick={() => downloadParentReport(selectedStudentForEmail[0], selectedStudentForEmail[1])} className="w-full bg-gray-800 border-2 border-gray-700 hover:border-yellow-300 text-white font-bold uppercase py-3 flex items-center justify-center gap-2">
+              <button onClick={() => downloadParentReport(selectedStudentForEmail[0], selectedStudentForEmail[1])} className="w-full font-bold uppercase py-3 rounded-lg border-2 flex items-center justify-center gap-2 transition-colors active:scale-[0.98]" style={{ backgroundColor: 'var(--th-bg-input)', borderColor: 'var(--th-border)', color: 'var(--th-text)' }}>
                 <Download className="h-4 w-4" /> Download Report
               </button>
-              <button onClick={() => { setParentEmailMode(false); setSelectedStudentForEmail(null); }} className="w-full bg-gray-950 border-2 border-gray-700 text-gray-400 font-bold uppercase py-2">
+              <button onClick={() => { setParentEmailMode(false); setSelectedStudentForEmail(null); }} className="w-full font-bold uppercase py-2 rounded-lg border-2 transition-colors active:scale-[0.98]" style={{ backgroundColor: 'var(--th-bg-card)', borderColor: 'var(--th-border)', color: 'var(--th-text-muted)' }}>
                 Cancel
               </button>
             </div>
@@ -583,12 +669,12 @@ This report generated by Habits Class`.trim();
 
       {/* Student Detail Modal */}
       {selectedStudent && (
-        <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-black border-4 border-yellow-300 p-4 sm:p-6 max-w-2xl w-full my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
+          <div className="rounded-xl p-4 sm:p-6 max-w-2xl w-full my-8 shadow-lg shadow-black/30 border-2" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl sm:text-2xl font-black" style={{ color: '#FFEA00' }}>{selectedStudent[1].name}</h2>
-              <button onClick={() => setSelectedStudent(null)} className="p-2 hover:bg-gray-900 rounded">
-                <X className="h-6 w-6" />
+              <h2 className="text-xl sm:text-2xl font-black" style={{ color: 'var(--th-accent)' }}>{selectedStudent[1].name}</h2>
+              <button onClick={() => setSelectedStudent(null)} className="p-2 rounded-lg transition-colors" style={{ backgroundColor: 'var(--th-bg-elevated)' }}>
+                <X className="h-6 w-6" style={{ color: 'var(--th-text)' }} />
               </button>
             </div>
             <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -596,47 +682,48 @@ This report generated by Habits Class`.trim();
                 const dayData = selectedStudent[1].weekData?.[day];
                 const isComplete = dayData?.readingComplete;
                 return (
-                  <div key={day} className={`border-2 p-3 sm:p-4 ${isComplete ? 'border-green-500 bg-green-950' : 'border-gray-700 bg-gray-950'}`}>
+                  <div key={day} className="border-2 p-3 sm:p-4 rounded-lg" style={{ borderColor: isComplete ? 'var(--th-success)' : 'var(--th-border)', backgroundColor: isComplete ? 'var(--th-accent-dim)' : 'var(--th-bg-card)' }}>
                     <p className="font-bold mb-2 text-sm">{day} {isComplete ? '\u2713' : '\u25CB'}</p>
-                    <div className="space-y-1 text-xs text-gray-300">
-                      <p><span className="text-yellow-300">S:</span> {dayData?.soap?.scripture?.slice(0, 50) || 'Empty'}...</p>
-                      <p><span className="text-yellow-300">O:</span> {dayData?.soap?.observation?.slice(0, 50) || 'Empty'}...</p>
-                      <p><span className="text-yellow-300">A:</span> {dayData?.soap?.application?.slice(0, 50) || 'Empty'}...</p>
+                    <div className="space-y-1 text-xs" style={{ color: 'var(--th-text-secondary)' }}>
+                      <p><span style={{ color: 'var(--th-accent)' }}>S:</span> {dayData?.soap?.scripture?.slice(0, 50) || 'Empty'}...</p>
+                      <p><span style={{ color: 'var(--th-accent)' }}>O:</span> {dayData?.soap?.observation?.slice(0, 50) || 'Empty'}...</p>
+                      <p><span style={{ color: 'var(--th-accent)' }}>A:</span> {dayData?.soap?.application?.slice(0, 50) || 'Empty'}...</p>
                     </div>
                   </div>
                 );
               })}
             </div>
             <div className="mt-6 space-y-3">
-              <button onClick={() => { setSelectedStudentForEmail(selectedStudent); setParentEmailMode(true); setSelectedStudent(null); }} className="w-full bg-blue-600 text-white font-bold uppercase py-3">
+              <button onClick={() => { setSelectedStudentForEmail(selectedStudent); setParentEmailMode(true); setSelectedStudent(null); }} className="w-full font-bold uppercase py-3 rounded-lg transition-colors active:scale-[0.98]" style={{ backgroundColor: 'var(--th-info)', color: '#fff' }}>
                 Send Parent Report
               </button>
-              <button onClick={() => downloadParentReport(selectedStudent[0], selectedStudent[1])} className="w-full bg-gray-800 border-2 border-gray-700 hover:border-yellow-300 text-white font-bold uppercase py-3 flex items-center justify-center gap-2">
+              <button onClick={() => downloadParentReport(selectedStudent[0], selectedStudent[1])} className="w-full font-bold uppercase py-3 rounded-lg border-2 flex items-center justify-center gap-2 transition-colors active:scale-[0.98]" style={{ backgroundColor: 'var(--th-bg-input)', borderColor: 'var(--th-border)', color: 'var(--th-text)' }}>
                 <Download className="h-4 w-4" /> Download Report
               </button>
-              <button onClick={() => setSelectedStudent(null)} className="w-full bg-gray-950 border-2 border-gray-700 text-gray-400 font-bold uppercase py-2">Close</button>
+              <button onClick={() => setSelectedStudent(null)} className="w-full font-bold uppercase py-2 rounded-lg border-2 transition-colors active:scale-[0.98]" style={{ backgroundColor: 'var(--th-bg-card)', borderColor: 'var(--th-border)', color: 'var(--th-text-muted)' }}>Close</button>
             </div>
           </div>
         </div>
       )}
 
       {/* Teacher Header */}
-      <header className="border-b-4 border-yellow-300 bg-black p-4 sm:p-6">
+      <header className="border-b-2 p-4 sm:p-6" style={{ borderColor: 'var(--th-accent)', background: 'linear-gradient(135deg, var(--th-bg), var(--th-bg-card))' }}>
         <div className="max-w-7xl mx-auto px-2 sm:px-4">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black" style={{ color: '#FFEA00' }}>TEACHER DASHBOARD</h1>
-              <p className="text-gray-400 text-xs sm:text-sm uppercase tracking-widest mt-2">Week {currentWeek} &middot; Real-time Analytics</p>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black" style={{ color: 'var(--th-accent)' }}>TEACHER DASHBOARD</h1>
+              <p className="text-xs sm:text-sm uppercase tracking-widest mt-2" style={{ color: 'var(--th-text-muted)' }}>Week {currentWeek} &middot; Real-time Analytics</p>
             </div>
             <div className="flex gap-2 items-center">
               <select
                 value={currentWeek}
                 onChange={(e) => setCurrentWeek(parseInt(e.target.value))}
-                className="bg-gray-900 border-2 border-gray-700 text-white px-3 sm:px-4 py-2 font-bold uppercase text-sm"
+                className="px-3 sm:px-4 py-2 font-bold uppercase text-sm rounded-lg border-2"
+                style={{ backgroundColor: 'var(--th-bg-input)', borderColor: 'var(--th-border)', color: 'var(--th-text)' }}
               >
                 {[1, 2, 3, 4].map((w) => <option key={w} value={w}>Week {w}</option>)}
               </select>
-              <button onClick={onLogout} className="p-2 sm:p-3 bg-gray-900 border-2 border-gray-700 hover:border-yellow-300 text-xs font-bold uppercase">
+              <button onClick={onLogout} className="p-2 sm:p-3 border-2 text-xs font-bold uppercase rounded-lg transition-colors active:scale-[0.98]" style={{ backgroundColor: 'var(--th-bg-input)', borderColor: 'var(--th-border)', color: 'var(--th-text)' }}>
                 Exit
               </button>
             </div>
@@ -644,21 +731,21 @@ This report generated by Habits Class`.trim();
 
           {/* Key Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-gray-900 border-4 border-yellow-300 p-3 sm:p-4">
-              <p className="text-[10px] sm:text-xs text-gray-500 uppercase font-bold">Class Size</p>
-              <p className="text-2xl sm:text-3xl font-black" style={{ color: '#FFEA00' }}>{metrics.totalStudents}</p>
+            <div className="border-2 p-3 sm:p-4 rounded-xl" style={{ borderColor: 'var(--th-accent)', backgroundColor: 'var(--th-bg-card)' }}>
+              <p className="text-[10px] sm:text-xs uppercase font-bold" style={{ color: 'var(--th-text-muted)' }}>Class Size</p>
+              <p className="text-2xl sm:text-3xl font-black" style={{ color: 'var(--th-accent)' }}>{metrics.totalStudents}</p>
             </div>
-            <div className="bg-gray-900 border-4 border-green-500 p-3 sm:p-4">
-              <p className="text-[10px] sm:text-xs text-gray-500 uppercase font-bold">Avg Completion</p>
-              <p className="text-2xl sm:text-3xl font-black text-green-400">{metrics.avgCompletion}%</p>
+            <div className="border-2 p-3 sm:p-4 rounded-xl" style={{ borderColor: 'var(--th-success)', backgroundColor: 'var(--th-bg-card)' }}>
+              <p className="text-[10px] sm:text-xs uppercase font-bold" style={{ color: 'var(--th-text-muted)' }}>Avg Completion</p>
+              <p className="text-2xl sm:text-3xl font-black" style={{ color: 'var(--th-success)' }}>{metrics.avgCompletion}%</p>
             </div>
-            <div className="bg-gray-900 border-4 border-blue-500 p-3 sm:p-4">
-              <p className="text-[10px] sm:text-xs text-gray-500 uppercase font-bold">SOAP Quality</p>
-              <p className="text-2xl sm:text-3xl font-black text-blue-400">{metrics.avgSoapQuality}%</p>
+            <div className="border-2 p-3 sm:p-4 rounded-xl" style={{ borderColor: 'var(--th-info)', backgroundColor: 'var(--th-bg-card)' }}>
+              <p className="text-[10px] sm:text-xs uppercase font-bold" style={{ color: 'var(--th-text-muted)' }}>SOAP Quality</p>
+              <p className="text-2xl sm:text-3xl font-black" style={{ color: 'var(--th-info)' }}>{metrics.avgSoapQuality}%</p>
             </div>
-            <div className={`bg-gray-900 border-4 p-3 sm:p-4 ${metrics.behindStudents.length > 0 ? 'border-red-500' : 'border-green-500'}`}>
-              <p className="text-[10px] sm:text-xs text-gray-500 uppercase font-bold">At Risk</p>
-              <p className={`text-2xl sm:text-3xl font-black ${metrics.behindStudents.length > 0 ? 'text-red-400' : 'text-green-400'}`}>
+            <div className="border-2 p-3 sm:p-4 rounded-xl" style={{ borderColor: metrics.behindStudents.length > 0 ? 'var(--th-danger)' : 'var(--th-success)', backgroundColor: 'var(--th-bg-card)' }}>
+              <p className="text-[10px] sm:text-xs uppercase font-bold" style={{ color: 'var(--th-text-muted)' }}>At Risk</p>
+              <p className="text-2xl sm:text-3xl font-black" style={{ color: metrics.behindStudents.length > 0 ? 'var(--th-danger)' : 'var(--th-success)' }}>
                 {metrics.behindStudents.length}
               </p>
             </div>
@@ -668,9 +755,9 @@ This report generated by Habits Class`.trim();
 
       <main className="w-full max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-6 sm:space-y-8">
         {/* Daily Completion Chart */}
-        <div className="bg-gray-900 border-4 border-gray-800 p-4 sm:p-6">
+        <div className="rounded-xl border-2 p-4 sm:p-6" style={{ borderColor: 'var(--th-border)', backgroundColor: 'var(--th-bg-card)' }}>
           <h2 className="text-lg sm:text-xl font-black uppercase mb-4 flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" style={{ color: '#FFEA00' }} />
+            <BarChart3 className="h-5 w-5" style={{ color: 'var(--th-accent)' }} />
             Daily Completion Rate
           </h2>
           <div className="space-y-3">
@@ -678,10 +765,10 @@ This report generated by Habits Class`.trim();
               <div key={day}>
                 <div className="flex justify-between mb-1">
                   <span className="text-xs sm:text-sm font-bold">{day}</span>
-                  <span className="text-xs sm:text-sm font-bold" style={{ color: '#FFEA00' }}>{metrics.dailyCompletion[day] || 0}%</span>
+                  <span className="text-xs sm:text-sm font-bold" style={{ color: 'var(--th-accent)' }}>{metrics.dailyCompletion[day] || 0}%</span>
                 </div>
-                <div className="w-full bg-gray-800 h-3 rounded overflow-hidden">
-                  <div className="h-full transition-all duration-300" style={{ width: `${metrics.dailyCompletion[day] || 0}%`, backgroundColor: (metrics.dailyCompletion[day] || 0) >= 80 ? '#22c55e' : (metrics.dailyCompletion[day] || 0) >= 50 ? '#eab308' : '#ef4444' }} />
+                <div className="w-full h-3 rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--th-bg-input)' }}>
+                  <div className="h-full transition-all duration-300" style={{ width: `${metrics.dailyCompletion[day] || 0}%`, backgroundColor: (metrics.dailyCompletion[day] || 0) >= 80 ? 'var(--th-success)' : (metrics.dailyCompletion[day] || 0) >= 50 ? 'var(--th-warning)' : 'var(--th-danger)' }} />
                 </div>
               </div>
             ))}
@@ -690,18 +777,18 @@ This report generated by Habits Class`.trim();
 
         {/* At-Risk Students */}
         {metrics.behindStudents.length > 0 && (
-          <div className="bg-red-950 border-4 border-red-500 p-4 sm:p-6">
-            <h2 className="text-lg sm:text-xl font-black uppercase mb-4 flex items-center gap-2 text-red-400">
+          <div className="rounded-xl border-2 p-4 sm:p-6" style={{ borderColor: 'var(--th-danger)', backgroundColor: 'var(--th-accent-dim)' }}>
+            <h2 className="text-lg sm:text-xl font-black uppercase mb-4 flex items-center gap-2" style={{ color: 'var(--th-danger)' }}>
               <AlertCircle className="h-5 w-5" /> Students Behind (&lt; 4 Days)
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {metrics.behindStudents.map(([sid, data]) => {
                 const completed = DAYS.filter((d) => data.weekData?.[d]?.readingComplete).length;
                 return (
-                  <div key={sid} className="bg-black border-2 border-red-500 p-4">
-                    <p className="font-bold text-red-400 text-sm">{data.name}</p>
-                    <p className="text-xs text-gray-400 mb-3">{completed}/7 days complete</p>
-                    <button onClick={() => setSelectedStudent([sid, data])} className="text-xs bg-red-600 hover:bg-red-500 px-3 py-1 font-bold">View Details</button>
+                  <div key={sid} className="border-2 p-4 rounded-lg" style={{ borderColor: 'var(--th-danger)', backgroundColor: 'var(--th-bg)' }}>
+                    <p className="font-bold text-sm" style={{ color: 'var(--th-danger)' }}>{data.name}</p>
+                    <p className="text-xs mb-3" style={{ color: 'var(--th-text-secondary)' }}>{completed}/7 days complete</p>
+                    <button onClick={() => setSelectedStudent([sid, data])} className="text-xs px-3 py-1 font-bold rounded-lg transition-colors active:scale-[0.98]" style={{ backgroundColor: 'var(--th-danger)', color: '#fff' }}>View Details</button>
                   </div>
                 );
               })}
@@ -710,16 +797,16 @@ This report generated by Habits Class`.trim();
         )}
 
         {/* Student Leaderboard */}
-        <div className="bg-gray-900 border-4 border-gray-800 p-4 sm:p-6">
+        <div className="rounded-xl border-2 p-4 sm:p-6" style={{ borderColor: 'var(--th-border)', backgroundColor: 'var(--th-bg-card)' }}>
           <h2 className="text-lg sm:text-xl font-black uppercase mb-4 flex items-center gap-2">
-            <Users className="h-5 w-5" style={{ color: '#FFEA00' }} />
+            <Users className="h-5 w-5" style={{ color: 'var(--th-accent)' }} />
             Student Performance + Parent Reports
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-xs sm:text-sm">
               <thead>
-                <tr className="border-b-2 border-gray-700">
-                  <th className="text-left py-2 px-2 font-bold text-yellow-300">Student</th>
+                <tr style={{ borderBottom: '2px solid var(--th-border)' }}>
+                  <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--th-accent)' }}>Student</th>
                   <th className="text-center py-2 px-2 font-bold">Days</th>
                   <th className="text-center py-2 px-2 font-bold">%</th>
                   <th className="text-center py-2 px-2 font-bold hidden sm:table-cell">SOAP</th>
@@ -736,16 +823,16 @@ This report generated by Habits Class`.trim();
                     return soap?.scripture && soap?.observation && soap?.application && soap?.prayer;
                   }).length;
                   const soapPct = Math.round((soapComplete / DAYS.length) * 100);
-                  const badges = calculateBadges(data);
+                  const bdgs = calculateBadges(data);
                   return (
-                    <tr key={sid} className="border-b border-gray-800 hover:bg-gray-800 cursor-pointer" onClick={() => setSelectedStudent([sid, data])}>
+                    <tr key={sid} className="cursor-pointer" style={{ borderBottom: '1px solid var(--th-border)' }} onClick={() => setSelectedStudent([sid, data])}>
                       <td className="py-3 px-2 font-bold">{data.name}</td>
                       <td className="py-3 px-2 text-center">{completed}/7</td>
                       <td className="py-3 px-2 text-center">{pct}%</td>
                       <td className="py-3 px-2 text-center hidden sm:table-cell">{soapPct}%</td>
-                      <td className="py-3 px-2 text-center">{badges.map((b) => b.emoji).join('') || '-'}</td>
+                      <td className="py-3 px-2 text-center">{bdgs.map((b) => b.emoji).join('') || '-'}</td>
                       <td className="py-3 px-2 text-center">
-                        <button onClick={(e) => { e.stopPropagation(); setSelectedStudentForEmail([sid, data]); setParentEmailMode(true); }} className="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 font-bold text-white">
+                        <button onClick={(e) => { e.stopPropagation(); setSelectedStudentForEmail([sid, data]); setParentEmailMode(true); }} className="text-xs px-2 py-1 font-bold rounded-lg transition-colors active:scale-[0.98]" style={{ backgroundColor: 'var(--th-info)', color: '#fff' }}>
                           Send
                         </button>
                       </td>
@@ -759,18 +846,18 @@ This report generated by Habits Class`.trim();
 
         {/* Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <button onClick={() => loadStudentData()} className="bg-yellow-300 text-black font-black uppercase py-3 hover:bg-yellow-200 flex items-center justify-center gap-2 text-sm">
+          <button onClick={() => loadStudentData()} className="font-black uppercase py-3 flex items-center justify-center gap-2 text-sm rounded-lg transition-colors active:scale-[0.98]" style={{ backgroundColor: 'var(--th-accent)', color: 'var(--th-bg)' }}>
             <RotateCcw className="h-4 w-4" /> Refresh Data
           </button>
-          <button onClick={() => window.location.reload()} className="bg-gray-900 border-2 border-gray-700 hover:border-yellow-300 font-black uppercase py-3 text-sm">
+          <button onClick={() => window.location.reload()} className="font-black uppercase py-3 text-sm rounded-lg border-2 transition-colors active:scale-[0.98]" style={{ backgroundColor: 'var(--th-bg-input)', borderColor: 'var(--th-border)', color: 'var(--th-text)' }}>
             Hard Refresh
           </button>
-          <button onClick={onLogout} className="bg-gray-900 border-2 border-gray-700 hover:border-yellow-300 font-black uppercase py-3 text-sm">
+          <button onClick={onLogout} className="font-black uppercase py-3 text-sm rounded-lg border-2 transition-colors active:scale-[0.98]" style={{ backgroundColor: 'var(--th-bg-input)', borderColor: 'var(--th-border)', color: 'var(--th-text)' }}>
             Back to Student View
           </button>
         </div>
 
-        <div className="bg-gray-950 border-2 border-gray-700 p-3 text-center text-[10px] sm:text-xs text-gray-500">
+        <div className="rounded-lg border-2 p-3 text-center text-[10px] sm:text-xs" style={{ backgroundColor: 'var(--th-bg-card)', borderColor: 'var(--th-border)', color: 'var(--th-text-muted)' }}>
           <p>Student data is stored locally on each device. Teacher dashboard aggregates data from the same device.</p>
         </div>
       </main>
@@ -803,6 +890,15 @@ export default function HabitsTracker() {
   const [isTeacherMode, setIsTeacherMode] = useState(false);
   const [showTeacherLogin, setShowTeacherLogin] = useState(false);
 
+  // Theme state
+  const [currentTheme, setCurrentTheme] = useState('midnight-gold');
+
+  const setTheme = useCallback((themeId: string) => {
+    setCurrentTheme(themeId);
+    document.documentElement.setAttribute('data-theme', themeId);
+    localStorage.setItem('habitsTheme', themeId);
+  }, []);
+
   // ==================== INITIALIZATION ====================
   const [savedQuizHistory] = useState<Record<string, QuizHistoryEntry>>(() => {
     if (typeof window === 'undefined') return {};
@@ -826,6 +922,10 @@ export default function HabitsTracker() {
   });
 
   useEffect(() => {
+    // Load theme from localStorage
+    const savedTheme = localStorage.getItem('habitsTheme') || 'midnight-gold';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
     // Register service worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js').catch((err) => console.log('SW registration failed:', err));
@@ -874,6 +974,7 @@ export default function HabitsTracker() {
     requestAnimationFrame(() => {
       setStudentId(id);
       setStudentName(name);
+      setCurrentTheme(savedTheme);
       setEarnedBadges(savedBadges);
       setDailyData(parsed!);
       setStreakCount(savedStreak);
@@ -902,7 +1003,7 @@ export default function HabitsTracker() {
     return () => clearTimeout(timer);
   }, [dailyData, studentId, currentWeek]);
 
-  // ==================== BADGE FUNCTIONS (declared before useEffect that uses them) ====================
+  // ==================== BADGE FUNCTIONS ====================
   const checkAndUnlockBadge = (badgeId: string, badgeLabel: string, badgeEmoji: string) => {
     if (!studentId) return;
     const savedB = JSON.parse(localStorage.getItem(`${studentId}_badges`) || '[]') as string[];
@@ -922,22 +1023,22 @@ export default function HabitsTracker() {
   };
 
   const getEarnedBadges = (): Badge[] => {
-    const badges: Badge[] = [];
+    const bdgs: Badge[] = [];
     const completedDaysCount = Object.keys(dailyData).filter(
       (day) => dailyData[day]?.readingComplete && Object.values(dailyData[day]?.soap || {}).some((v) => v)
     ).length;
-    if (completedDaysCount === 7) badges.push(ALL_BADGES[0]);
-    if (completedDaysCount >= 5) badges.push(ALL_BADGES[1]);
-    if (getMemorizationScore() >= 80) badges.push(ALL_BADGES[2]);
-    if (streakCount >= 2) badges.push(ALL_BADGES[3]);
-    return badges;
+    if (completedDaysCount === 7) bdgs.push(ALL_BADGES[0]);
+    if (completedDaysCount >= 5) bdgs.push(ALL_BADGES[1]);
+    if (getMemorizationScore() >= 80) bdgs.push(ALL_BADGES[2]);
+    if (streakCount >= 2) bdgs.push(ALL_BADGES[3]);
+    return bdgs;
   };
 
   // ==================== BADGE CHECK ON DATA CHANGE ====================
   useEffect(() => {
     if (!studentId || Object.keys(dailyData).length === 0) return;
-    const badges = getEarnedBadges();
-    badges.forEach((badge) => {
+    const bdgs = getEarnedBadges();
+    bdgs.forEach((badge) => {
       if (!earnedBadges.includes(badge.id)) {
         checkAndUnlockBadge(badge.id, badge.label, badge.emoji);
       }
@@ -1022,7 +1123,6 @@ export default function HabitsTracker() {
   };
 
   // ==================== QUIZ ====================
-  // getMemorizationScore and getEarnedBadges are declared above
   const handleQuizSubmit = () => {
     const answer = quiz.answer.toLowerCase();
     const correctWords = ['beginning', 'word', 'god'];
@@ -1090,62 +1190,70 @@ export default function HabitsTracker() {
 
   // ==================== TEACHER MODE ====================
   if (isTeacherMode) {
-    return <TeacherDashboardPanel onLogout={() => setIsTeacherMode(false)} />;
+    return (
+      <>
+        <TeacherDashboardPanel onLogout={() => setIsTeacherMode(false)} />
+        <ThemeSelector currentTheme={currentTheme} setTheme={setTheme} />
+      </>
+    );
   }
 
   // ==================== LOADING STATE ====================
   if (Object.keys(dailyData).length === 0) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <p className="text-yellow-300 font-bold text-xl animate-pulse">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--th-bg)' }}>
+        <div className="shimmer rounded-xl p-8 w-64 h-16" />
       </div>
     );
   }
 
   // ==================== STUDENT VIEW ====================
   return (
-    <div className="min-h-screen bg-black text-white overflow-x-hidden pb-[env(safe-area-inset-bottom)]" style={{ fontFamily: "'Syne', sans-serif" }}>
-      {/* Modals */}
-      <ReflectBackModal show={showReflect} onClose={() => setShowReflect(false)} dailyData={dailyData} currentWeek={currentWeek} />
-      <BadgesModal show={showBadges} onClose={() => setShowBadges(false)} earnedBadges={earnedBadges} />
-      <MemorizationMeterModal show={showMeter} onClose={() => setShowMeter(false)} score={memScore} attemptCount={Object.keys(quizHistory).length} />
+    <div className="min-h-screen overflow-x-hidden pb-[env(safe-area-inset-bottom)]" style={{ backgroundColor: 'var(--th-bg)', color: 'var(--th-text)' }}>
+      {/* Modals wrapped in Suspense */}
+      <Suspense fallback={<div className="shimmer rounded-xl" style={{ width: 400, height: 300, margin: '20vh auto' }} />}>
+        {showReflect && <ReflectBackModal show={showReflect} onClose={() => setShowReflect(false)} dailyData={dailyData} currentWeek={currentWeek} />}
+        {showBadges && <BadgesModal show={showBadges} onClose={() => setShowBadges(false)} earnedBadges={earnedBadges} />}
+        {showMeter && <MemorizationMeterModal show={showMeter} onClose={() => setShowMeter(false)} score={memScore} attemptCount={Object.keys(quizHistory).length} />}
+      </Suspense>
       {showNameModal && studentId && <StudentNameModal studentId={studentId} onClose={handleNameSubmit} />}
       {showTeacherLogin && <TeacherLoginModal onClose={() => setShowTeacherLogin(false)} onLogin={() => { setIsTeacherMode(true); setShowTeacherLogin(false); }} />}
 
       {/* Badge Unlock Notification */}
       {badgeUnlocked && (
-        <div className="fixed top-20 right-4 z-[60] bg-yellow-900 border-4 border-yellow-300 p-4 sm:p-6 rounded animate-pulse max-w-xs">
+        <div className="fixed top-20 right-4 z-[60] p-4 sm:p-6 rounded-xl border-2 animate-pulse max-w-xs shadow-lg shadow-black/30" style={{ borderColor: 'var(--th-accent)', backgroundColor: 'var(--th-accent-dim)' }}>
           <div className="text-center">
             <p className="text-4xl sm:text-5xl mb-2">{badgeUnlocked.emoji}</p>
-            <p className="font-black text-yellow-300 uppercase text-sm sm:text-base">{badgeUnlocked.label}</p>
-            <p className="text-xs text-gray-300 mt-2">You unlocked a badge!</p>
+            <p className="font-black uppercase text-sm sm:text-base" style={{ color: 'var(--th-accent)' }}>{badgeUnlocked.label}</p>
+            <p className="text-xs mt-2" style={{ color: 'var(--th-text-secondary)' }}>You unlocked a badge!</p>
           </div>
         </div>
       )}
 
       {/* Full Header */}
-      <header className="border-b-4 border-yellow-300 bg-black p-4 sm:p-6">
+      <header className="border-b-2 p-4 sm:p-6" style={{ borderColor: 'var(--th-accent)', background: 'linear-gradient(135deg, var(--th-bg), var(--th-bg-card))' }}>
         <div className="max-w-5xl mx-auto px-2 sm:px-4">
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black mb-1" style={{ color: '#FFEA00' }}>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black mb-1" style={{ color: 'var(--th-accent)' }}>
                 HABITS CLASS: WEEK {currentWeek}
               </h1>
-              {studentName && <p className="text-sm text-yellow-400 font-bold">{studentName}</p>}
+              {studentName && <p className="text-sm font-bold" style={{ color: 'var(--th-accent)', opacity: 0.8 }}>{studentName}</p>}
             </div>
             <button
               onClick={() => setShowTeacherLogin(true)}
-              className="text-xs bg-gray-900 border-2 border-gray-700 text-gray-400 px-3 py-2 font-bold uppercase hover:border-yellow-300 hover:text-yellow-300 transition-colors"
+              className="text-xs px-3 py-2 font-bold uppercase rounded-lg border-2 transition-colors active:scale-[0.98]"
+              style={{ backgroundColor: 'var(--th-bg-card)', borderColor: 'var(--th-border)', color: 'var(--th-text-muted)' }}
             >
               Teacher?
             </button>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 mt-3 flex-wrap">
-            <span className="text-xs bg-yellow-300 text-black px-2 py-1 font-bold">
+            <span className="text-xs px-2 py-1 font-bold rounded-lg" style={{ backgroundColor: 'var(--th-accent)', color: 'var(--th-bg)' }}>
               {'\uD83D\uDD25'} {streakCount} week streak
             </span>
             {badges.map((b) => (
-              <span key={b.id} className="text-xs bg-gray-800 text-yellow-300 px-2 py-1 font-bold">
+              <span key={b.id} className="text-xs px-2 py-1 font-bold rounded-lg" style={{ backgroundColor: 'var(--th-bg-input)', color: 'var(--th-accent)' }}>
                 {b.emoji} {b.label}
               </span>
             ))}
@@ -1154,46 +1262,49 @@ export default function HabitsTracker() {
       </header>
 
       {/* Sticky Minimal Header */}
-      <div className="sticky top-0 z-50 bg-black border-b-4 border-yellow-300 px-3 sm:px-6 py-2 sm:py-3">
+      <div className="sticky top-0 z-50 border-b-2 px-3 sm:px-6 py-2 sm:py-3" style={{ borderColor: 'var(--th-accent)', backgroundColor: 'var(--th-bg)' }}>
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 sm:gap-4 flex-wrap">
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-widest truncate">
+            <p className="text-[10px] sm:text-xs uppercase tracking-widest truncate" style={{ color: 'var(--th-text-secondary)' }}>
               Daily Devotional &middot; John 1-7 &middot; Knowing God
             </p>
-            <p className="text-[10px] sm:text-xs text-gray-500">{completedDays}/7 days progressing</p>
+            <p className="text-[10px] sm:text-xs" style={{ color: 'var(--th-text-muted)' }}>{completedDays}/7 days progressing</p>
           </div>
           <div className="flex gap-2 text-xs items-center">
-            <button onClick={handleUndo} className="p-1 hover:bg-gray-900 rounded" title="Undo">{'\u21B6'}</button>
-            <button onClick={() => setShowMeter(true)} className="p-1 hover:bg-gray-900 rounded" title="Memorization">{'\uD83D\uDCCA'} {memScore}%</button>
-            <p className={`font-bold text-[10px] sm:text-xs ${saveStatus === 'Saved \u2713' ? 'text-green-400' : 'text-gray-500'}`}>{saveStatus}</p>
+            <button onClick={handleUndo} className="p-1 rounded-lg transition-colors" title="Undo" style={{ color: 'var(--th-text)' }}>{'\u21B6'}</button>
+            <button onClick={() => setShowMeter(true)} className="p-1 rounded-lg transition-colors" title="Memorization" style={{ color: 'var(--th-text)' }}>{'\uD83D\uDCCA'} {memScore}%</button>
+            <p className="font-bold text-[10px] sm:text-xs" style={{ color: saveStatus === 'Saved \u2713' ? 'var(--th-success)' : 'var(--th-text-muted)' }}>{saveStatus}</p>
           </div>
         </div>
       </div>
 
       {/* Day Selector */}
-      <nav className="bg-gray-900 border-b-4 border-gray-800 sticky top-[44px] sm:top-[52px] z-40">
+      <nav className="border-b-2 sticky top-[44px] sm:top-[52px] z-40" style={{ borderColor: 'var(--th-border)', backgroundColor: 'var(--th-bg-elevated)' }}>
         <div className="max-w-5xl mx-auto px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-1 sm:gap-2 overflow-x-auto no-scrollbar">
-          <button onClick={() => currentDay > 0 && setCurrentDay(currentDay - 1)} disabled={currentDay === 0} className="p-2 disabled:opacity-30 flex-shrink-0">
+          <button onClick={() => currentDay > 0 && setCurrentDay(currentDay - 1)} disabled={currentDay === 0} className="p-2 disabled:opacity-30 flex-shrink-0 rounded-lg transition-colors" style={{ color: 'var(--th-text)' }}>
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div className="flex gap-1 sm:gap-2 justify-center flex-1 min-w-0">
-            {DAYS.map((day, idx) => (
-              <button
-                key={day}
-                onClick={() => setCurrentDay(idx)}
-                className={`px-2 sm:px-3 py-2 font-bold uppercase text-[10px] sm:text-xs border-2 transition-all flex-shrink-0 ${
-                  currentDay === idx
-                    ? 'border-yellow-300 bg-yellow-300 text-black'
-                    : dailyData[day]?.readingComplete && Object.values(dailyData[day]?.soap || {}).some((v) => v)
-                    ? 'border-green-500 bg-green-950 text-green-300'
-                    : 'border-gray-700 bg-gray-950 text-gray-400'
-                }`}
-              >
-                {day.slice(0, 3)}
-              </button>
-            ))}
+            {DAYS.map((day, idx) => {
+              const isComplete = dailyData[day]?.readingComplete && Object.values(dailyData[day]?.soap || {}).some((v) => v);
+              const isActive = currentDay === idx;
+              return (
+                <button
+                  key={day}
+                  onClick={() => setCurrentDay(idx)}
+                  className="px-2 sm:px-3 py-2 font-bold uppercase text-[10px] sm:text-xs border-2 transition-all flex-shrink-0 rounded-lg active:scale-[0.97]"
+                  style={{
+                    borderColor: isActive ? 'var(--th-accent)' : isComplete ? 'var(--th-success)' : 'var(--th-border)',
+                    backgroundColor: isActive ? 'var(--th-accent)' : isComplete ? 'var(--th-accent-dim)' : 'var(--th-bg-card)',
+                    color: isActive ? 'var(--th-bg)' : isComplete ? 'var(--th-success)' : 'var(--th-text-muted)',
+                  }}
+                >
+                  {day.slice(0, 3)}
+                </button>
+              );
+            })}
           </div>
-          <button onClick={() => currentDay < 6 && setCurrentDay(currentDay + 1)} disabled={currentDay === 6} className="p-2 disabled:opacity-30 flex-shrink-0">
+          <button onClick={() => currentDay < 6 && setCurrentDay(currentDay + 1)} disabled={currentDay === 6} className="p-2 disabled:opacity-30 flex-shrink-0 rounded-lg transition-colors" style={{ color: 'var(--th-text)' }}>
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
@@ -1202,32 +1313,33 @@ export default function HabitsTracker() {
       {/* Content */}
       <main className="w-full max-w-5xl mx-auto px-2 sm:px-6 py-4 sm:py-6">
         {/* Daily Devotional Card */}
-        <div className="bg-gray-900 border-2 sm:border-4 border-yellow-300 p-4 sm:p-8 space-y-6 sm:space-y-8 overflow-hidden rounded-sm">
+        <div className="border-2 sm:border-4 p-4 sm:p-8 space-y-6 sm:space-y-8 overflow-hidden rounded-xl" style={{ borderColor: 'var(--th-accent)', backgroundColor: 'var(--th-bg-card)' }}>
           {/* Day Header */}
-          <div className="flex items-start justify-between pb-4 sm:pb-6 border-b-2 border-gray-800 gap-4">
+          <div className="flex items-start justify-between pb-4 sm:pb-6 gap-4" style={{ borderBottom: '2px solid var(--th-border)' }}>
             <div className="flex-1 min-w-0">
               <h2 className="text-xl sm:text-3xl font-black mb-1 sm:mb-2">{today.day.toUpperCase()}</h2>
-              <p className="text-gray-400 uppercase tracking-widest text-xs sm:text-sm">{today.chapter}</p>
+              <p className="uppercase tracking-widest text-xs sm:text-sm" style={{ color: 'var(--th-text-secondary)' }}>{today.chapter}</p>
             </div>
             <div className="text-right flex-shrink-0">
-              <p className="text-[10px] sm:text-xs text-gray-500 uppercase mb-1">Memory Verse</p>
-              <p className="text-[10px] sm:text-xs font-mono text-yellow-300">{MEMORY_REFERENCE}</p>
+              <p className="text-[10px] sm:text-xs uppercase mb-1" style={{ color: 'var(--th-text-muted)' }}>Memory Verse</p>
+              <p className="text-[10px] sm:text-xs font-mono" style={{ color: 'var(--th-accent)' }}>{MEMORY_REFERENCE}</p>
             </div>
           </div>
 
           {/* TASK A: BIBLE READING */}
           <section className="space-y-4">
             <h3 className="text-base sm:text-xl font-black uppercase flex items-center gap-2">
-              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: '#FFEA00' }} />
+              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: 'var(--th-accent)' }} />
               Read {today.chapter}
             </h3>
             <button
               onClick={() => toggleReading(today.day)}
-              className={`w-full p-4 sm:p-6 border-2 sm:border-4 font-bold uppercase transition-all text-sm sm:text-lg ${
-                current.readingComplete
-                  ? 'border-yellow-300 bg-yellow-300 text-black'
-                  : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-yellow-300'
-              }`}
+              className="w-full p-4 sm:p-6 border-2 sm:border-4 font-bold uppercase transition-all text-sm sm:text-lg rounded-xl active:scale-[0.98]"
+              style={{
+                borderColor: current.readingComplete ? 'var(--th-accent)' : 'var(--th-border)',
+                backgroundColor: current.readingComplete ? 'var(--th-accent)' : 'var(--th-bg-input)',
+                color: current.readingComplete ? 'var(--th-bg)' : 'var(--th-text-secondary)',
+              }}
             >
               {current.readingComplete ? (
                 <span className="flex items-center justify-center gap-3">
@@ -1241,34 +1353,40 @@ export default function HabitsTracker() {
           </section>
 
           {/* TASK B: DAILY S.O.A.P. */}
-          <section className="space-y-4 border-t-2 border-gray-800 pt-6 sm:pt-8">
+          <section className="space-y-4 pt-6 sm:pt-8" style={{ borderTop: '2px solid var(--th-border)' }}>
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <h3 className="text-base sm:text-xl font-black uppercase flex items-center gap-2 mb-1 sm:mb-2">
-                  <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: '#FFEA00' }} />
+                  <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: 'var(--th-accent)' }} />
                   Daily S.O.A.P.
                 </h3>
-                <p className="text-gray-400 text-xs sm:text-sm">{today.soapRange}</p>
+                <p className="text-xs sm:text-sm" style={{ color: 'var(--th-text-secondary)' }}>{today.soapRange}</p>
               </div>
-              <button onClick={copySoapEntry} className="p-2 hover:bg-gray-800 rounded flex-shrink-0" title="Copy SOAP">
+              <button onClick={copySoapEntry} className="p-2 rounded-lg flex-shrink-0 transition-colors" title="Copy SOAP" style={{ color: 'var(--th-text-secondary)' }}>
                 <Copy className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="bg-black border-2 border-gray-700 p-3 sm:p-4 mb-4">
-              <p className="text-xs sm:text-sm italic text-gray-300">&ldquo;{today.soapText}&rdquo;</p>
+            <div className="border-2 p-3 sm:p-4 mb-4 rounded-lg" style={{ borderColor: 'var(--th-border)', backgroundColor: 'var(--th-bg)' }}>
+              <p className="text-xs sm:text-sm italic" style={{ color: 'var(--th-text-secondary)' }}>&ldquo;{today.soapText}&rdquo;</p>
             </div>
 
             <div className="space-y-4 sm:space-y-5">
               {SOAP_FIELDS.map((field) => (
-                <div key={field.key} className="border-l-4 border-yellow-300 pl-3 sm:pl-6">
-                  <label className="block text-[10px] sm:text-xs font-bold uppercase text-yellow-300 mb-2">{field.label}</label>
+                <div key={field.key} className="pl-3 sm:pl-6" style={{ borderLeft: '4px solid var(--th-accent)' }}>
+                  <label className="block text-[10px] sm:text-xs font-bold uppercase mb-2" style={{ color: 'var(--th-accent)' }}>{field.label}</label>
                   <textarea
                     value={current.soap?.[field.key] || ''}
                     onChange={(e) => handleSoapChange(today.day, field.key, e.target.value)}
                     onInput={handleTextareaInput}
                     placeholder={`Write your ${field.key}...`}
-                    className="w-full bg-black border-2 border-gray-700 text-white p-3 font-mono text-xs sm:text-sm focus:border-yellow-300 focus:outline-none resize-none"
+                    className="w-full p-3 font-mono text-xs sm:text-sm border-2 rounded-lg focus:outline-none focus:ring-2 resize-none"
+                    style={{
+                      backgroundColor: 'var(--th-bg)',
+                      borderColor: 'var(--th-border)',
+                      color: 'var(--th-text)',
+                      ['--tw-ring-color' as string]: 'var(--th-accent)',
+                    }}
                     rows={3}
                   />
                 </div>
@@ -1277,28 +1395,34 @@ export default function HabitsTracker() {
           </section>
 
           {/* TASK C: THREE DAILY PRAYERS */}
-          <section className="space-y-4 border-t-2 border-gray-800 pt-6 sm:pt-8">
+          <section className="space-y-4 pt-6 sm:pt-8" style={{ borderTop: '2px solid var(--th-border)' }}>
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-base sm:text-xl font-black uppercase flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: '#FFEA00' }} />
+                <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: 'var(--th-accent)' }} />
                 Prayer Prompts
               </h3>
-              <button onClick={exportPrayersToPDF} className="p-2 hover:bg-gray-800 rounded text-xs flex gap-1 items-center flex-shrink-0">
+              <button onClick={exportPrayersToPDF} className="p-2 rounded-lg text-xs flex gap-1 items-center flex-shrink-0 transition-colors" style={{ color: 'var(--th-text-secondary)' }}>
                 <Download className="h-4 w-4" /> Export
               </button>
             </div>
 
             <div className="space-y-4">
               {PRAYERS.map((prayer, idx) => (
-                <div key={idx} className="bg-black border-2 border-gray-700 p-3 sm:p-4">
-                  <p className="text-[10px] sm:text-xs font-bold uppercase text-yellow-300 mb-2 sm:mb-3">{prayer.title}</p>
-                  <p className="text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3 italic">&ldquo;{prayer.prompt}&rdquo;</p>
+                <div key={idx} className="border-2 p-3 sm:p-4 rounded-lg" style={{ borderColor: 'var(--th-border)', backgroundColor: 'var(--th-bg)' }}>
+                  <p className="text-[10px] sm:text-xs font-bold uppercase mb-2 sm:mb-3" style={{ color: 'var(--th-accent)' }}>{prayer.title}</p>
+                  <p className="text-xs sm:text-sm mb-2 sm:mb-3 italic" style={{ color: 'var(--th-text-muted)' }}>&ldquo;{prayer.prompt}&rdquo;</p>
                   <textarea
                     value={current.prayers?.[idx] || ''}
                     onChange={(e) => handlePrayerChange(today.day, idx, e.target.value)}
                     onInput={handleTextareaInput}
                     placeholder={`Write your ${prayer.title.toLowerCase()}...`}
-                    className="w-full bg-gray-950 border-2 border-gray-600 text-white p-2 font-mono text-xs sm:text-sm focus:border-yellow-300 focus:outline-none resize-none"
+                    className="w-full p-2 font-mono text-xs sm:text-sm border-2 rounded-lg focus:outline-none focus:ring-2 resize-none"
+                    style={{
+                      backgroundColor: 'var(--th-bg-card)',
+                      borderColor: 'var(--th-border-hover)',
+                      color: 'var(--th-text)',
+                      ['--tw-ring-color' as string]: 'var(--th-accent)',
+                    }}
                     rows={3}
                   />
                 </div>
@@ -1307,71 +1431,82 @@ export default function HabitsTracker() {
           </section>
 
           {/* Memory Verse Reminder */}
-          <div className="bg-black border-4 border-gray-700 p-4 sm:p-6 space-y-3">
-            <h3 className="text-xs sm:text-sm font-black uppercase flex items-center gap-2 text-yellow-300">
+          <div className="border-2 p-4 sm:p-6 space-y-3 rounded-xl" style={{ borderColor: 'var(--th-border)', backgroundColor: 'var(--th-bg)' }}>
+            <h3 className="text-xs sm:text-sm font-black uppercase flex items-center gap-2" style={{ color: 'var(--th-accent)' }}>
               <Eye className="h-4 w-4" />
               Daily Memory Verse
             </h3>
-            <p className="text-base sm:text-lg italic font-serif text-gray-300 leading-relaxed">&ldquo;{MEMORY_VERSE}&rdquo;</p>
-            <p className="text-[10px] sm:text-xs text-gray-500 font-mono">{MEMORY_REFERENCE}</p>
+            <p className="text-base sm:text-lg italic font-serif leading-relaxed" style={{ color: 'var(--th-text-secondary)' }}>&ldquo;{MEMORY_VERSE}&rdquo;</p>
+            <p className="text-[10px] sm:text-xs font-mono" style={{ color: 'var(--th-text-muted)' }}>{MEMORY_REFERENCE}</p>
           </div>
 
           {/* Accountability */}
-          <div className="p-3 sm:p-4 bg-gray-950 border-2 border-gray-700">
-            <label className="block text-[10px] sm:text-xs font-bold uppercase text-gray-400 mb-2">Checked by:</label>
+          <div className="p-3 sm:p-4 border-2 rounded-lg" style={{ backgroundColor: 'var(--th-bg-card)', borderColor: 'var(--th-border)' }}>
+            <label className="block text-[10px] sm:text-xs font-bold uppercase mb-2" style={{ color: 'var(--th-text-muted)' }}>Checked by:</label>
             <input
               type="text"
               placeholder="Teacher/Leader name"
-              className="w-full bg-black border-b-2 border-yellow-300 text-white px-2 py-2 focus:outline-none uppercase tracking-wider text-xs sm:text-sm"
+              className="w-full px-2 py-2 focus:outline-none uppercase tracking-wider text-xs sm:text-sm rounded-lg"
+              style={{ backgroundColor: 'var(--th-bg)', borderBottom: '2px solid var(--th-accent)', color: 'var(--th-text)' }}
             />
           </div>
         </div>
 
         {/* WEEK ACTIONS */}
         <div className="mt-6 sm:mt-12 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
-          <button onClick={() => setShowReflect(true)} className="p-3 sm:p-4 bg-gray-900 border-2 border-gray-700 font-bold text-[10px] sm:text-xs uppercase hover:border-yellow-300 active:bg-gray-800 text-center flex flex-col gap-1.5 sm:gap-2 items-center transition-colors">
-            <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" /><span>Reflect Back</span>
-          </button>
-          <button onClick={() => setShowBadges(true)} className="p-3 sm:p-4 bg-gray-900 border-2 border-gray-700 font-bold text-[10px] sm:text-xs uppercase hover:border-yellow-300 active:bg-gray-800 text-center flex flex-col gap-1.5 sm:gap-2 items-center transition-colors">
-            <Award className="h-4 w-4 sm:h-5 sm:w-5" /><span>Badges</span>
-          </button>
-          <button onClick={() => setShowMeter(true)} className="p-3 sm:p-4 bg-gray-900 border-2 border-gray-700 font-bold text-[10px] sm:text-xs uppercase hover:border-yellow-300 active:bg-gray-800 text-center flex flex-col gap-1.5 sm:gap-2 items-center transition-colors">
-            <Eye className="h-4 w-4 sm:h-5 sm:w-5" /><span>Memory Meter</span>
-          </button>
-          <button onClick={exportPrayersToPDF} className="p-3 sm:p-4 bg-gray-900 border-2 border-gray-700 font-bold text-[10px] sm:text-xs uppercase hover:border-yellow-300 active:bg-gray-800 text-center flex flex-col gap-1.5 sm:gap-2 items-center transition-colors">
-            <Download className="h-4 w-4 sm:h-5 sm:w-5" /><span>Export Prayers</span>
-          </button>
+          {[
+            { icon: <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />, label: 'Reflect Back', onClick: () => setShowReflect(true) },
+            { icon: <Award className="h-4 w-4 sm:h-5 sm:w-5" />, label: 'Badges', onClick: () => setShowBadges(true) },
+            { icon: <Eye className="h-4 w-4 sm:h-5 sm:w-5" />, label: 'Memory Meter', onClick: () => setShowMeter(true) },
+            { icon: <Download className="h-4 w-4 sm:h-5 sm:w-5" />, label: 'Export Prayers', onClick: exportPrayersToPDF },
+          ].map((action) => (
+            <button
+              key={action.label}
+              onClick={action.onClick}
+              className="p-3 sm:p-4 border-2 font-bold text-[10px] sm:text-xs uppercase text-center flex flex-col gap-1.5 sm:gap-2 items-center transition-colors active:scale-[0.97] rounded-xl hover:shadow-lg hover:shadow-black/10"
+              style={{ backgroundColor: 'var(--th-bg-card)', borderColor: 'var(--th-border)', color: 'var(--th-text)' }}
+            >
+              {action.icon}
+              <span>{action.label}</span>
+            </button>
+          ))}
         </div>
 
         {/* MEMORY VERSE QUIZ */}
-        <section className="mt-6 sm:mt-12 bg-gray-900 border-2 sm:border-4 border-yellow-300 p-4 sm:p-8 space-y-4 sm:space-y-6">
+        <section className="mt-6 sm:mt-12 border-2 sm:border-4 p-4 sm:p-8 space-y-4 sm:space-y-6 rounded-xl" style={{ borderColor: 'var(--th-accent)', backgroundColor: 'var(--th-bg-card)' }}>
           <h2 className="text-lg sm:text-2xl font-black uppercase">Memory Verse Quiz (John 1:1-5)</h2>
-          <div className="bg-black border-2 sm:border-4 border-gray-800 p-4 sm:p-6">
-            <p className="text-base sm:text-lg italic font-serif text-gray-300 text-center leading-relaxed">&ldquo;{MEMORY_VERSE}&rdquo;</p>
-            <p className="text-[10px] sm:text-xs text-gray-600 text-center mt-4 font-mono">{MEMORY_REFERENCE}</p>
+          <div className="border-2 sm:border-4 p-4 sm:p-6 rounded-lg" style={{ borderColor: 'var(--th-border)', backgroundColor: 'var(--th-bg)' }}>
+            <p className="text-base sm:text-lg italic font-serif text-center leading-relaxed" style={{ color: 'var(--th-text-secondary)' }}>&ldquo;{MEMORY_VERSE}&rdquo;</p>
+            <p className="text-[10px] sm:text-xs text-center mt-4 font-mono" style={{ color: 'var(--th-text-muted)' }}>{MEMORY_REFERENCE}</p>
           </div>
           <div className="space-y-3">
-            <label className="block text-[10px] sm:text-xs font-bold uppercase text-yellow-300 mb-2">Recite John 1:1-5 from memory:</label>
+            <label className="block text-[10px] sm:text-xs font-bold uppercase mb-2" style={{ color: 'var(--th-accent)' }}>Recite John 1:1-5 from memory:</label>
             <textarea
               value={quiz.answer}
               onChange={(e) => setQuiz((prev) => ({ ...prev, answer: e.target.value }))}
               onInput={handleTextareaInput}
               disabled={quiz.submitted}
               placeholder="Type the entire verse..."
-              className="w-full bg-black border-2 border-gray-700 text-white p-3 sm:p-4 font-mono text-xs sm:text-sm focus:border-yellow-300 focus:outline-none disabled:opacity-40 resize-none"
+              className="w-full p-3 sm:p-4 font-mono text-xs sm:text-sm border-2 rounded-lg focus:outline-none focus:ring-2 disabled:opacity-40 resize-none"
+              style={{
+                backgroundColor: 'var(--th-bg)',
+                borderColor: 'var(--th-border)',
+                color: 'var(--th-text)',
+                ['--tw-ring-color' as string]: 'var(--th-accent)',
+              }}
               rows={4}
             />
             {!quiz.submitted ? (
-              <button onClick={handleQuizSubmit} className="w-full bg-yellow-300 text-black font-black uppercase py-3 hover:bg-yellow-200 transition-all text-sm">
+              <button onClick={handleQuizSubmit} className="w-full font-black uppercase py-3 transition-all text-sm rounded-lg active:scale-[0.98]" style={{ backgroundColor: 'var(--th-accent)', color: 'var(--th-bg)' }}>
                 Check My Answer
               </button>
             ) : (
-              <div className={`p-3 sm:p-6 border-2 sm:border-4 ${quiz.correct ? 'border-green-500 bg-green-950' : 'border-gray-600 bg-gray-950'}`}>
+              <div className="p-3 sm:p-6 border-2 sm:border-4 rounded-xl" style={{ borderColor: quiz.correct ? 'var(--th-success)' : 'var(--th-border)', backgroundColor: quiz.correct ? 'var(--th-accent-dim)' : 'var(--th-bg-card)' }}>
                 <p className="font-black uppercase mb-2 text-sm sm:text-base">{quiz.correct ? '\u2713 PERFECT! YOU GOT IT!' : `${quiz.accuracy}% Match`}</p>
-                <div className="w-full bg-gray-800 h-2 rounded mb-3">
-                  <div className="bg-yellow-300 h-2 transition-all duration-500" style={{ width: `${quiz.accuracy}%` }} />
+                <div className="w-full h-2 rounded-lg mb-3 overflow-hidden" style={{ backgroundColor: 'var(--th-bg-input)' }}>
+                  <div className="h-2 transition-all duration-500 rounded-lg" style={{ width: `${quiz.accuracy}%`, backgroundColor: 'var(--th-accent)' }} />
                 </div>
-                <button onClick={() => setQuiz({ answer: '', submitted: false, correct: false, accuracy: 0 })} className="text-yellow-300 font-bold uppercase text-xs hover:text-yellow-200">
+                <button onClick={() => setQuiz({ answer: '', submitted: false, correct: false, accuracy: 0 })} className="font-bold uppercase text-xs transition-colors" style={{ color: 'var(--th-accent)' }}>
                   Try Again
                 </button>
               </div>
@@ -1381,11 +1516,14 @@ export default function HabitsTracker() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-900 border-t-4 border-yellow-300 p-4 sm:p-6 mt-8 sm:mt-12 mb-8">
-        <div className="max-w-5xl mx-auto text-center text-[10px] sm:text-xs text-gray-500 uppercase tracking-widest">
+      <footer className="border-t-2 p-4 sm:p-6 mt-8 sm:mt-12 mb-8" style={{ borderColor: 'var(--th-accent)', backgroundColor: 'var(--th-bg-elevated)' }}>
+        <div className="max-w-5xl mx-auto text-center text-[10px] sm:text-xs uppercase tracking-widest" style={{ color: 'var(--th-text-muted)' }}>
           {'\u2713'} All progress saved automatically &middot; Installable as app &middot; Offline support enabled
         </div>
       </footer>
+
+      {/* Theme Selector */}
+      <ThemeSelector currentTheme={currentTheme} setTheme={setTheme} />
     </div>
   );
 }
