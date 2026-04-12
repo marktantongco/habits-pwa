@@ -26,6 +26,16 @@ import {
   Sparkles,
   Cloud,
   LogOut,
+  Star,
+  AlertTriangle,
+  ClipboardList,
+  Save,
+  Trash2,
+  Clock,
+  CheckCircle2,
+  Flame,
+  Zap,
+  Trophy,
 } from 'lucide-react';
 
 // ==================== THEME DATA (Enhanced with icons & descriptions) ====================
@@ -116,6 +126,15 @@ interface StudentInfo {
   email?: string;
 }
 
+interface ClipboardEntry {
+  id: string;
+  text: string;
+  label: string;
+  timestamp: string;
+}
+
+type DayStatus = 'done' | 'past-due' | 'due-today' | 'current' | 'future';
+
 // ==================== CONSTANTS ====================
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -154,14 +173,74 @@ const SOAP_FIELDS: { key: keyof SoapData; label: string }[] = [
 
 const TEACHER_PASSWORD = '/123';
 
-// ==================== THEME SELECTOR COMPONENT (Enhanced) ====================
+// ==================== UTILITY FUNCTIONS ====================
+
+/** Compute today's index mapped to Mon=0, Tue=1, ..., Sun=6 */
+function getTodayIndex(): number {
+  const jsDay = new Date().getDay(); // Sun=0, Mon=1, ..., Sat=6
+  return jsDay === 0 ? 6 : jsDay - 1;
+}
+
+/** Check if a DayData has any SOAP content (non-empty string in any field) */
+function hasSoapContent(dayData: DayData | undefined): boolean {
+  if (!dayData?.soap) return false;
+  return Object.values(dayData.soap).some((v) => typeof v === 'string' && v.trim().length > 0);
+}
+
+/**
+ * Determine the status of a day based on its index and data.
+ * - "done": reading complete AND has SOAP content
+ * - "past-due": index < today AND NOT done
+ * - "due-today": index === today AND NOT done
+ * - "current": index === today (selected active)
+ * - "future": index > today
+ */
+function getDayStatus(dayIndex: number, dailyData: Record<string, DayData>): DayStatus {
+  const todayIdx = getTodayIndex();
+  const dayName = DAYS[dayIndex];
+  const dayData = dailyData[dayName];
+  const isDone = dayData?.readingComplete === true && hasSoapContent(dayData);
+
+  if (isDone) return 'done';
+  if (dayIndex < todayIdx) return 'past-due';
+  if (dayIndex === todayIdx) return 'due-today';
+  return 'future';
+}
+
+/** Get relative time string (e.g., "2 min ago", "just now") */
+function getRelativeTime(timestamp: string): string {
+  const now = Date.now();
+  const then = new Date(timestamp).getTime();
+  const diffMs = now - then;
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 10) return 'just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr} hr ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  return `${diffDay} day${diffDay !== 1 ? 's' : ''} ago`;
+}
+
+/** Generate a simple unique ID */
+function generateId(): string {
+  return `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+}
+
+// ==================== THEME SELECTOR COMPONENT (Enhanced with animation & toast) ====================
 const ThemeSelector = React.memo(function ThemeSelector({ currentTheme, setTheme }: { currentTheme: string; setTheme: (t: string) => void }) {
   const [open, setOpen] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
 
   const activeTheme = THEMES.find((t) => t.id === currentTheme) || THEMES[0];
 
   const handleSelect = (themeId: string) => {
     setTheme(themeId);
+    const theme = THEMES.find((t) => t.id === themeId);
+    if (theme) {
+      setToastMsg(`Theme changed to ${theme.label}`);
+      setTimeout(() => setToastMsg(''), 2000);
+    }
     setOpen(false);
   };
 
@@ -169,7 +248,7 @@ const ThemeSelector = React.memo(function ThemeSelector({ currentTheme, setTheme
     <div className="fixed bottom-6 right-6 z-[70]">
       {open && (
         <div
-          className="absolute bottom-16 right-0 p-4 rounded-2xl shadow-2xl shadow-black/40 border-2 w-72"
+          className="absolute bottom-16 right-0 p-4 rounded-2xl shadow-2xl shadow-black/40 border-2 w-72 modal-content"
           style={{
             backgroundColor: 'var(--th-bg-card)',
             borderColor: 'var(--th-border)',
@@ -188,10 +267,11 @@ const ThemeSelector = React.memo(function ThemeSelector({ currentTheme, setTheme
                 <button
                   key={t.id}
                   onClick={() => handleSelect(t.id)}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl transition-all active:scale-[0.97] text-left"
+                  className="theme-option w-full flex items-center gap-3 p-3 rounded-xl text-left"
                   style={{
                     backgroundColor: isActive ? t.color + '18' : 'transparent',
                     border: `2px solid ${isActive ? t.color : 'transparent'}`,
+                    transform: isActive ? 'scale(1)' : undefined,
                   }}
                 >
                   <span
@@ -215,15 +295,106 @@ const ThemeSelector = React.memo(function ThemeSelector({ currentTheme, setTheme
           </div>
         </div>
       )}
+      {toastMsg && (
+        <div className="absolute bottom-16 right-0 mb-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider slide-in-right" style={{ backgroundColor: 'var(--th-accent)', color: 'var(--th-bg)' }}>
+          {toastMsg}
+        </div>
+      )}
       <button
         onClick={() => setOpen(!open)}
-        className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg shadow-black/30 transition-transform active:scale-[0.95] border-2"
-        style={{ backgroundColor: activeTheme.color, color: activeTheme.bg, borderColor: 'var(--th-border)' }}
+        className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-[0.95] border-2"
+        style={{
+          backgroundColor: activeTheme.color,
+          color: activeTheme.bg,
+          borderColor: 'var(--th-border)',
+          boxShadow: `0 0 20px ${activeTheme.color}40`,
+        }}
         aria-label={`Change theme (current: ${activeTheme.label})`}
         title={activeTheme.label}
       >
         {THEME_ICONS[activeTheme.icon]}
       </button>
+    </div>
+  );
+});
+
+// ==================== CLIPBOARD HISTORY MODAL ====================
+const ClipboardHistoryModal = React.memo(function ClipboardHistoryModal({
+  show,
+  onClose,
+  clipboardHistory,
+  onDeleteEntry,
+  onClearAll,
+}: {
+  show: boolean;
+  onClose: () => void;
+  clipboardHistory: ClipboardEntry[];
+  onDeleteEntry: (id: string) => void;
+  onClearAll: () => void;
+}) {
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
+      <div className="rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl shadow-black/30 border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl sm:text-2xl flex items-center gap-2" style={{ color: 'var(--th-accent)' }}>
+            <ClipboardList className="h-5 w-5" /> Clipboard
+          </h2>
+          <button onClick={onClose} className="p-2 rounded-lg transition-colors" style={{ backgroundColor: 'var(--th-bg-elevated)' }} aria-label="Close clipboard">
+            <X className="h-5 w-5" style={{ color: 'var(--th-text)' }} />
+          </button>
+        </div>
+        <div className="flex justify-between items-center mb-3">
+          <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: 'var(--th-text-muted)' }}>
+            {clipboardHistory.length} / 20 entries
+          </p>
+          {clipboardHistory.length > 0 && (
+            <button onClick={onClearAll} className="text-[10px] font-bold uppercase px-2 py-1 rounded-lg flex items-center gap-1 transition-all active:scale-[0.97]" style={{ color: 'var(--th-danger)', backgroundColor: 'var(--th-danger)' + '15' }}>
+              <Trash2 className="h-3 w-3" /> Clear All
+            </button>
+          )}
+        </div>
+        <div className="space-y-2 max-h-80 overflow-y-auto">
+          {clipboardHistory.length === 0 && (
+            <div className="text-center py-8">
+              <ClipboardList className="h-10 w-10 mx-auto mb-2" style={{ color: 'var(--th-text-muted)', opacity: 0.3 }} />
+              <p className="text-xs" style={{ color: 'var(--th-text-muted)' }}>No clipboard entries yet</p>
+              <p className="text-[10px] mt-1" style={{ color: 'var(--th-text-muted)' }}>Copy SOAP entries or prayers to see them here</p>
+            </div>
+          )}
+          {clipboardHistory.map((entry) => (
+            <div key={entry.id} className="clipboard-item border-2 p-3 rounded-xl" style={{ borderColor: 'var(--th-border)', backgroundColor: 'var(--th-bg-card)' }}>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <p className="text-[10px] font-bold uppercase" style={{ color: 'var(--th-accent)' }}>{entry.label}</p>
+                <span className="text-[10px] flex items-center gap-1" style={{ color: 'var(--th-text-muted)' }}>
+                  <Clock className="h-3 w-3" /> {getRelativeTime(entry.timestamp)}
+                </span>
+              </div>
+              <p className="text-xs mb-2 line-clamp-2" style={{ color: 'var(--th-text-secondary)', wordBreak: 'break-word' }}>
+                {entry.text.length > 120 ? entry.text.slice(0, 120) + '...' : entry.text}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(entry.text).catch(() => {});
+                  }}
+                  className="text-[10px] font-bold uppercase px-2 py-1 rounded-lg flex items-center gap-1 transition-all active:scale-[0.97]"
+                  style={{ color: 'var(--th-accent)', backgroundColor: 'var(--th-accent-dim)' }}
+                >
+                  <Copy className="h-3 w-3" /> Copy
+                </button>
+                <button
+                  onClick={() => onDeleteEntry(entry.id)}
+                  className="text-[10px] font-bold uppercase px-2 py-1 rounded-lg flex items-center gap-1 transition-all active:scale-[0.97]"
+                  style={{ color: 'var(--th-danger)', backgroundColor: 'var(--th-danger)' + '15' }}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 });
@@ -242,8 +413,8 @@ const ReflectBackModal = React.memo(function ReflectBackModal({
 }) {
   if (!show) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
-      <div className="rounded-2xl p-4 sm:p-6 max-w-4xl w-full my-8 shadow-2xl shadow-black/30 border-2" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto modal-backdrop" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
+      <div className="rounded-2xl p-4 sm:p-6 max-w-4xl w-full my-8 shadow-2xl shadow-black/30 border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl sm:text-2xl" style={{ color: 'var(--th-accent)' }}>
             Week {currentWeek} Reflection
@@ -253,13 +424,14 @@ const ReflectBackModal = React.memo(function ReflectBackModal({
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-          {DAYS.map((day) => {
+          {DAYS.map((day, idx) => {
             const d = dailyData[day];
-            const isComplete = d?.readingComplete;
+            const status = getDayStatus(idx, dailyData);
             return (
-              <div key={day} className="rounded-xl p-3 sm:p-4 border-2" style={{ backgroundColor: 'var(--th-bg-elevated)', borderColor: isComplete ? 'var(--th-success)' : 'var(--th-border)' }}>
-                <p className="text-sm font-bold mb-2 flex items-center gap-2" style={{ color: isComplete ? 'var(--th-success)' : 'var(--th-accent)' }}>
-                  {isComplete ? <Check className="h-3 w-3" /> : null}
+              <div key={day} className="rounded-xl p-3 sm:p-4 border-2" style={{ borderColor: status === 'done' ? 'var(--th-success)' : status === 'past-due' ? 'var(--th-danger)' : 'var(--th-border)', backgroundColor: status === 'done' ? 'var(--th-accent-dim)' : status === 'past-due' ? 'rgba(239,68,68,0.08)' : 'var(--th-bg-elevated)' }}>
+                <p className="text-sm font-bold mb-2 flex items-center gap-2" style={{ color: status === 'done' ? 'var(--th-success)' : status === 'past-due' ? 'var(--th-danger)' : 'var(--th-accent)' }}>
+                  {status === 'done' && <Star className="h-3 w-3" style={{ color: 'var(--th-success)' }} />}
+                  {status === 'past-due' && <AlertTriangle className="h-3 w-3 pulse-warning" style={{ color: 'var(--th-danger)' }} />}
                   {day.toUpperCase()}
                 </p>
                 <div className="text-xs space-y-1" style={{ color: 'var(--th-text-secondary)' }}>
@@ -291,8 +463,8 @@ const BadgesModal = React.memo(function BadgesModal({
 }) {
   if (!show) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
-      <div className="rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl shadow-black/30 border-2" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
+      <div className="rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl shadow-black/30 border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl sm:text-2xl" style={{ color: 'var(--th-accent)' }}>Your Badges</h2>
           <button onClick={onClose} className="p-2 rounded-lg transition-colors" style={{ backgroundColor: 'var(--th-bg-elevated)' }} aria-label="Close badges">
@@ -305,7 +477,7 @@ const BadgesModal = React.memo(function BadgesModal({
             return (
               <div
                 key={badge.id}
-                className="p-4 border-2 text-center rounded-xl transition-all"
+                className={`p-4 border-2 text-center rounded-xl transition-all ${isEarned ? 'badge-unlock' : ''}`}
                 style={{
                   borderColor: isEarned ? 'var(--th-accent)' : 'var(--th-border)',
                   backgroundColor: isEarned ? 'var(--th-accent-dim)' : 'var(--th-bg-card)',
@@ -346,8 +518,8 @@ const MemorizationMeterModal = React.memo(function MemorizationMeterModal({
   const tierLabel = score >= 80 ? 'Memory Master!' : score >= 50 ? 'Getting There!' : 'Keep Practicing!';
   const tierColor = score >= 80 ? 'var(--th-success)' : score >= 50 ? 'var(--th-accent)' : 'var(--th-danger)';
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
-      <div className="rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl shadow-black/30 border-2" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
+      <div className="rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl shadow-black/30 border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl sm:text-2xl" style={{ color: 'var(--th-accent)' }}>Memorization Meter</h2>
           <button onClick={onClose} className="p-2 rounded-lg transition-colors" style={{ backgroundColor: 'var(--th-bg-elevated)' }} aria-label="Close meter">
@@ -405,7 +577,7 @@ const OnboardingModal = React.memo(function OnboardingModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.97)' }}>
-      <div className="rounded-2xl p-6 sm:p-10 max-w-md w-full shadow-2xl border-2" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+      <div className="rounded-2xl p-6 sm:p-10 max-w-md w-full shadow-2xl border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
         {step === 0 ? (
           <div className="space-y-6">
             <div className="flex items-center gap-3 mb-2">
@@ -514,8 +686,8 @@ const TeacherLoginModal = React.memo(function TeacherLoginModal({
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}>
-      <div className="rounded-2xl p-6 sm:p-8 max-w-sm w-full shadow-2xl shadow-black/30 border-2" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}>
+      <div className="rounded-2xl p-6 sm:p-8 max-w-sm w-full shadow-2xl shadow-black/30 border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl" style={{ color: 'var(--th-accent)' }}>Teacher Access</h2>
           <button onClick={onClose} className="p-2 rounded-lg transition-colors" style={{ backgroundColor: 'var(--th-bg-elevated)' }} aria-label="Close teacher login">
@@ -563,6 +735,7 @@ const TeacherDashboardPanel = React.memo(function TeacherDashboardPanel({
   const [parentEmailMode, setParentEmailMode] = useState(false);
   const [selectedStudentForEmail, setSelectedStudentForEmail] = useState<[string, StudentInfo] | null>(null);
 
+  /** Load student data from localStorage */
   const loadStudentData = useCallback(() => {
     const students: Record<string, StudentInfo> = {};
     const seenIds = new Set<string>();
@@ -575,26 +748,34 @@ const TeacherDashboardPanel = React.memo(function TeacherDashboardPanel({
         const sid = match[1];
         if (seenIds.has(sid)) continue;
         seenIds.add(sid);
-        const weekData = JSON.parse(localStorage.getItem(key) || '{}');
-        const streak = parseInt(localStorage.getItem(`${sid}_streak`) || '0', 10) || 0;
-        const quizHistory = JSON.parse(localStorage.getItem(`${sid}_quizHistory`) || '{}');
-        const badges = JSON.parse(localStorage.getItem(`${sid}_badges`) || '[]');
-        const name = localStorage.getItem(`${sid}_name`) || `Student ${Object.keys(students).length + 1}`;
-        students[sid] = { name, weekData, streak, quizHistory, badges, studentId: sid };
+        try {
+          const weekData = JSON.parse(localStorage.getItem(key) || '{}');
+          const streak = parseInt(localStorage.getItem(`${sid}_streak`) || '0', 10) || 0;
+          const quizHistory = JSON.parse(localStorage.getItem(`${sid}_quizHistory`) || '{}');
+          const badges = JSON.parse(localStorage.getItem(`${sid}_badges`) || '[]');
+          const name = localStorage.getItem(`${sid}_name`) || `Student ${Object.keys(students).length + 1}`;
+          students[sid] = { name, weekData, streak, quizHistory, badges, studentId: sid };
+        } catch {
+          // Skip corrupt entries
+        }
       }
     }
 
     const oldKey = 'habitsWeek1Daily';
     const oldData = localStorage.getItem(oldKey);
     if (oldData && Object.keys(students).length === 0) {
-      const parsed = JSON.parse(oldData) as Record<string, DayData>;
-      students['student_legacy'] = {
-        name: 'Legacy Student', weekData: parsed,
-        streak: parseInt(localStorage.getItem('habitsStreak') || '0', 10) || 0,
-        quizHistory: JSON.parse(localStorage.getItem('habitsQuizHistory') || '{}'),
-        badges: JSON.parse(localStorage.getItem('habitsBadges') || '[]'),
-        studentId: 'student_legacy',
-      };
+      try {
+        const parsed = JSON.parse(oldData) as Record<string, DayData>;
+        students['student_legacy'] = {
+          name: 'Legacy Student', weekData: parsed,
+          streak: parseInt(localStorage.getItem('habitsStreak') || '0', 10) || 0,
+          quizHistory: JSON.parse(localStorage.getItem('habitsQuizHistory') || '{}'),
+          badges: JSON.parse(localStorage.getItem('habitsBadges') || '[]'),
+          studentId: 'student_legacy',
+        };
+      } catch {
+        // Skip corrupt legacy data
+      }
     }
     setClassData(students);
   }, []);
@@ -620,6 +801,7 @@ const TeacherDashboardPanel = React.memo(function TeacherDashboardPanel({
     return { totalStudents: total, avgCompletion, avgSoapQuality, dailyCompletion, behindStudents };
   }, [classData]);
 
+  /** Generate a text report for a student */
   const generateStudentReport = useCallback((_studentId: string, studentData: StudentInfo) => {
     const completedDays = DAYS.filter((d) => studentData.weekData?.[d]?.readingComplete).length;
     const completionPct = Math.round((completedDays / DAYS.length) * 100);
@@ -628,6 +810,7 @@ const TeacherDashboardPanel = React.memo(function TeacherDashboardPanel({
     return `HABITS CLASS - STUDENT PROGRESS REPORT\nWeek ${currentWeek}\n\nStudent: ${studentData.name}\nDate: ${new Date().toLocaleDateString()}\n\n=== COMPLETION ===\nDays Completed: ${completedDays}/7 (${completionPct}%)\nBible: John 1-7\n\n=== SPIRITUAL REFLECTIONS ===\n${DAYS.map((day) => { const soap = studentData.weekData?.[day]?.soap; if (soap?.scripture) return `${day}:\nScripture: ${soap.scripture.slice(0, 60)}...\nApplication: ${soap.application.slice(0, 60)}...`; return `${day}: [Not yet completed]`; }).join('\n')}\n\n=== WEEKLY SUMMARY ===\nStreak: ${studentData.streak} weeks\nQuiz Accuracy: ${avgQuiz}%\nStatus: ${completionPct === 100 ? 'PERFECT WEEK!' : completionPct >= 75 ? 'On Track' : 'Needs Support'}\n\n---\nThis report generated by Habits Class`.trim();
   }, [currentWeek]);
 
+  /** Download student report as text file */
   const downloadParentReport = useCallback((studentId: string, studentData: StudentInfo) => {
     const report = generateStudentReport(studentId, studentData);
     const element = document.createElement('a');
@@ -639,6 +822,7 @@ const TeacherDashboardPanel = React.memo(function TeacherDashboardPanel({
     document.body.removeChild(element);
   }, [generateStudentReport, currentWeek]);
 
+  /** Open email client with student report */
   const sendParentEmail = useCallback((studentId: string, studentData: StudentInfo) => {
     const report = generateStudentReport(studentId, studentData);
     const mailtoLink = `mailto:?subject=Habits Class Progress Report - ${studentData.name}&body=${encodeURIComponent(`Dear Parent,\n\nHere's ${studentData.name}'s weekly progress:\n\n${report}\n\nBest regards,\nHabits Class Teacher`)}`;
@@ -648,8 +832,8 @@ const TeacherDashboardPanel = React.memo(function TeacherDashboardPanel({
   return (
     <div className="min-h-screen pb-[env(safe-area-inset-bottom)]" style={{ backgroundColor: 'var(--th-bg)', color: 'var(--th-text)' }}>
       {parentEmailMode && selectedStudentForEmail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
-          <div className="rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl border-2" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
+          <div className="rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
             <h2 className="text-xl sm:text-2xl mb-6" style={{ color: 'var(--th-accent)' }}>Send to Parents</h2>
             <div className="rounded-xl p-4 mb-6 border-2" style={{ backgroundColor: 'var(--th-bg-elevated)', borderColor: 'var(--th-border)' }}>
               <p className="text-sm mb-1" style={{ color: 'var(--th-text-secondary)' }}>Student: <span className="font-bold" style={{ color: 'var(--th-text)' }}>{selectedStudentForEmail[1].name}</span></p>
@@ -669,8 +853,8 @@ const TeacherDashboardPanel = React.memo(function TeacherDashboardPanel({
       )}
 
       {selectedStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
-          <div className="rounded-2xl p-4 sm:p-6 max-w-2xl w-full my-8 shadow-2xl border-2" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto modal-backdrop" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
+          <div className="rounded-2xl p-4 sm:p-6 max-w-2xl w-full my-8 shadow-2xl border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl sm:text-2xl" style={{ color: 'var(--th-accent)' }}>{selectedStudent[1].name}</h2>
               <button onClick={() => setSelectedStudent(null)} className="p-2 rounded-lg transition-colors" style={{ backgroundColor: 'var(--th-bg-elevated)' }} aria-label="Close student details">
@@ -678,12 +862,19 @@ const TeacherDashboardPanel = React.memo(function TeacherDashboardPanel({
               </button>
             </div>
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {DAYS.map((day) => {
+              {DAYS.map((day, idx) => {
                 const dayData = selectedStudent[1].weekData?.[day];
-                const isComplete = dayData?.readingComplete;
+                const status = getDayStatus(idx, selectedStudent[1].weekData || {});
+                const isComplete = status === 'done';
                 return (
-                  <div key={day} className="border-2 p-3 sm:p-4 rounded-xl" style={{ borderColor: isComplete ? 'var(--th-success)' : 'var(--th-border)', backgroundColor: isComplete ? 'var(--th-accent-dim)' : 'var(--th-bg-card)' }}>
-                    <p className="font-bold mb-2 text-sm flex items-center gap-2">{day} {isComplete ? <Check className="h-3 w-3" style={{ color: 'var(--th-success)' }} /> : <span style={{ color: 'var(--th-text-muted)' }}>&#9675;</span>}</p>
+                  <div key={day} className="border-2 p-3 sm:p-4 rounded-xl" style={{ borderColor: status === 'done' ? 'var(--th-success)' : status === 'past-due' ? 'var(--th-danger)' : 'var(--th-border)', backgroundColor: isComplete ? 'var(--th-accent-dim)' : status === 'past-due' ? 'rgba(239,68,68,0.08)' : 'var(--th-bg-card)' }}>
+                    <p className="font-bold mb-2 text-sm flex items-center gap-2">
+                      {status === 'done' && <Star className="h-3 w-3" style={{ color: 'var(--th-success)' }} />}
+                      {status === 'past-due' && !isComplete && <AlertTriangle className="h-3 w-3 pulse-warning" style={{ color: 'var(--th-danger)' }} />}
+                      {status === 'due-today' && !isComplete && <AlertCircle className="h-3 w-3" style={{ color: 'var(--th-warning)' }} />}
+                      {day}
+                      {isComplete && <Check className="h-3 w-3" style={{ color: 'var(--th-success)' }} />}
+                    </p>
                     <div className="space-y-1 text-xs" style={{ color: 'var(--th-text-secondary)' }}>
                       <p><span style={{ color: 'var(--th-accent)' }}>S:</span> {dayData?.soap?.scripture?.slice(0, 60) || 'Empty'}</p>
                       <p><span style={{ color: 'var(--th-accent)' }}>O:</span> {dayData?.soap?.observation?.slice(0, 60) || 'Empty'}</p>
@@ -739,23 +930,31 @@ const TeacherDashboardPanel = React.memo(function TeacherDashboardPanel({
         <div className="rounded-xl border-2 p-4 sm:p-6" style={{ borderColor: 'var(--th-border)', backgroundColor: 'var(--th-bg-card)' }}>
           <h2 className="text-lg sm:text-xl uppercase mb-4 flex items-center gap-2"><BarChart3 className="h-5 w-5" style={{ color: 'var(--th-accent)' }} /> Daily Completion Rate</h2>
           <div className="space-y-3">
-            {DAYS.map((day) => (
-              <div key={day}>
-                <div className="flex justify-between mb-1">
-                  <span className="text-xs sm:text-sm font-bold">{day}</span>
-                  <span className="text-xs sm:text-sm font-bold" style={{ color: 'var(--th-accent)' }}>{metrics.dailyCompletion[day] || 0}%</span>
+            {DAYS.map((day, idx) => {
+              const todayIdx = getTodayIndex();
+              const status = idx < todayIdx ? 'past' : idx === todayIdx ? 'today' : 'future';
+              return (
+                <div key={day}>
+                  <div className="flex justify-between mb-1 items-center gap-2">
+                    <span className="text-xs sm:text-sm font-bold flex items-center gap-2">
+                      {idx < todayIdx && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--th-text-muted)' }} />}
+                      {idx === todayIdx && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--th-accent)' }} />}
+                      {day}
+                    </span>
+                    <span className="text-xs sm:text-sm font-bold" style={{ color: 'var(--th-accent)' }}>{metrics.dailyCompletion[day] || 0}%</span>
+                  </div>
+                  <div className="w-full h-3 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--th-bg-input)' }}>
+                    <div className="h-full rounded-full transition-all duration-300" style={{ width: `${metrics.dailyCompletion[day] || 0}%`, backgroundColor: (metrics.dailyCompletion[day] || 0) >= 80 ? 'var(--th-success)' : (metrics.dailyCompletion[day] || 0) >= 50 ? 'var(--th-warning)' : 'var(--th-danger)' }} />
+                  </div>
                 </div>
-                <div className="w-full h-3 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--th-bg-input)' }}>
-                  <div className="h-full rounded-full transition-all duration-300" style={{ width: `${metrics.dailyCompletion[day] || 0}%`, backgroundColor: (metrics.dailyCompletion[day] || 0) >= 80 ? 'var(--th-success)' : (metrics.dailyCompletion[day] || 0) >= 50 ? 'var(--th-warning)' : 'var(--th-danger)' }} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         {metrics.behindStudents.length > 0 && (
           <div className="rounded-xl border-2 p-4 sm:p-6" style={{ borderColor: 'var(--th-danger)', backgroundColor: 'var(--th-accent-dim)' }}>
-            <h2 className="text-lg sm:text-xl uppercase mb-4 flex items-center gap-2" style={{ color: 'var(--th-danger)' }}><AlertCircle className="h-5 w-5" /> Students Behind (&lt; 4 Days)</h2>
+            <h2 className="text-lg sm:text-xl uppercase mb-4 flex items-center gap-2" style={{ color: 'var(--th-danger)' }}><AlertTriangle className="h-5 w-5" /> Students Behind (&lt; 4 Days)</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {metrics.behindStudents.map(([sid, data]) => {
                 const completed = DAYS.filter((d) => data.weekData?.[d]?.readingComplete).length;
@@ -822,10 +1021,7 @@ const TeacherDashboardPanel = React.memo(function TeacherDashboardPanel({
 
 // ==================== MAIN COMPONENT ====================
 export default function HabitsTracker() {
-  const [currentDay, setCurrentDay] = useState(() => {
-    const todayIndex = new Date().getDay();
-    return todayIndex === 0 ? 6 : todayIndex - 1; // Map Sun=0->6, Mon=1->0, etc.
-  });
+  const [currentDay, setCurrentDay] = useState(() => getTodayIndex());
   const [dailyData, setDailyData] = useState<Record<string, DayData>>({});
   const [quiz, setQuiz] = useState<QuizState>({ answer: '', submitted: false, correct: false, accuracy: 0 });
   const [saveStatus, setSaveStatus] = useState('');
@@ -849,44 +1045,48 @@ export default function HabitsTracker() {
 
   const [checkedBy, setCheckedBy] = useState('');
 
+  // Day status system: track which day was recently completed for animation
+  const [recentlyCompleted, setRecentlyCompleted] = useState<string | null>(null);
+
+  // Save work feedback
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+
+  // Clipboard history
+  const [clipboardHistory, setClipboardHistory] = useState<ClipboardEntry[]>([]);
+  const [showClipboard, setShowClipboard] = useState(false);
+
+  // Last saved timestamp
+  const [lastSavedAt, setLastSavedAt] = useState<string>('');
+
   const setTheme = useCallback((themeId: string) => {
     setCurrentTheme(themeId);
     document.documentElement.setAttribute('data-theme', themeId);
-    localStorage.setItem('habitsTheme', themeId);
+    try { localStorage.setItem('habitsTheme', themeId); } catch { /* ignore */ }
   }, []);
 
   // ==================== INITIALIZATION ====================
-  const [savedQuizHistory] = useState<Record<string, QuizHistoryEntry>>(() => {
-    if (typeof window === 'undefined') return {};
-    try { return JSON.parse(localStorage.getItem('habitsQuizHistory') || '{}'); } catch { return {}; }
-  });
-
-  const [savedStreak] = useState<number>(() => {
-    if (typeof window === 'undefined') return 0;
-    try { return parseInt(localStorage.getItem('habitsStreak') || '0', 10) || 0; } catch { return 0; }
-  });
-
-  const [savedBadges] = useState<string[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try { return JSON.parse(localStorage.getItem('habitsBadges') || '[]'); } catch { return []; }
-  });
-
   useEffect(() => {
-    const savedTheme = localStorage.getItem('habitsTheme') || 'midnight-gold';
+    let savedTheme = 'midnight-gold';
+    try { savedTheme = localStorage.getItem('habitsTheme') || 'midnight-gold'; } catch { /* ignore */ }
     document.documentElement.setAttribute('data-theme', savedTheme);
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js').catch(() => {});
     }
 
-    let id = localStorage.getItem('habitsStudentId');
+    let id: string | null = null;
     let name = '';
+
+    try {
+      id = localStorage.getItem('habitsStudentId');
+    } catch { /* ignore */ }
 
     if (!id) {
       id = `student_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-      localStorage.setItem('habitsStudentId', id);
+      try { localStorage.setItem('habitsStudentId', id); } catch { /* ignore */ }
     } else {
-      name = localStorage.getItem(`${id}_name`) || '';
+      try { name = localStorage.getItem(`${id}_name`) || ''; } catch { /* ignore */ }
     }
 
     if (!name && id) {
@@ -894,7 +1094,9 @@ export default function HabitsTracker() {
     }
 
     const storageKey = id ? `${id}_habitsWeek1Daily` : 'habitsWeek1Daily';
-    const saved = localStorage.getItem(storageKey) || localStorage.getItem('habitsWeek1Daily');
+    let saved: string | null = null;
+    try { saved = localStorage.getItem(storageKey) || localStorage.getItem('habitsWeek1Daily'); } catch { /* ignore */ }
+
     let parsed: Record<string, DayData> | null = null;
     if (saved) { try { parsed = JSON.parse(saved); } catch { parsed = null; } }
 
@@ -907,15 +1109,32 @@ export default function HabitsTracker() {
 
     const savedCheckedBy = parsed ? DAYS.map((d) => parsed[d]?.checkedBy || '').find((c) => c) || '' : '';
 
+    // Load quiz history
+    let loadedQuizHistory: Record<string, QuizHistoryEntry> = {};
+    try { loadedQuizHistory = JSON.parse(localStorage.getItem(id ? `${id}_quizHistory` : 'habitsQuizHistory') || '{}'); } catch { /* ignore */ }
+
+    // Load streak
+    let loadedStreak = 0;
+    try { loadedStreak = parseInt(localStorage.getItem(id ? `${id}_streak` : 'habitsStreak') || '0', 10) || 0; } catch { /* ignore */ }
+
+    // Load badges
+    let loadedBadges: string[] = [];
+    try { loadedBadges = JSON.parse(localStorage.getItem(id ? `${id}_badges` : 'habitsBadges') || '[]'); } catch { /* ignore */ }
+
+    // Load clipboard history
+    let loadedClipboard: ClipboardEntry[] = [];
+    try { loadedClipboard = JSON.parse(localStorage.getItem(id ? `${id}_clipboardHistory` : 'clipboardHistory') || '[]'); } catch { /* ignore */ }
+
     requestAnimationFrame(() => {
       setStudentId(id);
       setStudentName(name);
       setCurrentTheme(savedTheme);
-      setEarnedBadges(savedBadges);
+      setEarnedBadges(loadedBadges);
       setDailyData(parsed!);
-      setStreakCount(savedStreak);
-      setQuizHistory(savedQuizHistory);
+      setStreakCount(loadedStreak);
+      setQuizHistory(loadedQuizHistory);
       setCheckedBy(savedCheckedBy);
+      setClipboardHistory(loadedClipboard);
     });
   }, []);
 
@@ -923,41 +1142,57 @@ export default function HabitsTracker() {
   useEffect(() => {
     if (Object.keys(dailyData).length === 0) return;
     const timer = setTimeout(() => {
-      if (studentId) {
-        localStorage.setItem(`${studentId}_habitsWeek${currentWeek}Daily`, JSON.stringify(dailyData));
-      }
-      localStorage.setItem('habitsWeek1Daily', JSON.stringify(dailyData));
+      try {
+        if (studentId) {
+          localStorage.setItem(`${studentId}_habitsWeek${currentWeek}Daily`, JSON.stringify(dailyData));
+        }
+        localStorage.setItem('habitsWeek1Daily', JSON.stringify(dailyData));
+      } catch { /* ignore */ }
       setHistory((prev) => [...prev.slice(-9), { timestamp: new Date().toISOString(), data: dailyData }]);
       setSaveStatus('Saved \u2713');
+      setLastSavedAt(new Date().toISOString());
       const clearTimer = setTimeout(() => setSaveStatus(''), 2000);
       return () => clearTimeout(clearTimer);
     }, 300);
     return () => clearTimeout(timer);
   }, [dailyData, studentId, currentWeek]);
 
+  // ==================== PERSIST CLIPBOARD HISTORY ====================
+  useEffect(() => {
+    if (!studentId) return;
+    try {
+      localStorage.setItem(`${studentId}_clipboardHistory`, JSON.stringify(clipboardHistory));
+    } catch { /* ignore */ }
+  }, [clipboardHistory, studentId]);
+
   // ==================== BADGE FUNCTIONS ====================
+  /** Check if a badge should be unlocked and unlock it */
   const checkAndUnlockBadge = useCallback((badgeId: string, badgeLabel: string, badgeEmoji: string) => {
     if (!studentId) return;
-    const savedB = JSON.parse(localStorage.getItem(`${studentId}_badges`) || '[]') as string[];
-    if (!savedB.includes(badgeId)) {
-      savedB.push(badgeId);
-      localStorage.setItem(`${studentId}_badges`, JSON.stringify(savedB));
-      localStorage.setItem('habitsBadges', JSON.stringify(savedB));
-      setEarnedBadges(savedB);
-      setBadgeUnlocked({ id: badgeId, label: badgeLabel, emoji: badgeEmoji });
-      setTimeout(() => setBadgeUnlocked(null), 5000);
-    }
+    try {
+      const savedB = JSON.parse(localStorage.getItem(`${studentId}_badges`) || '[]') as string[];
+      if (!savedB.includes(badgeId)) {
+        savedB.push(badgeId);
+        localStorage.setItem(`${studentId}_badges`, JSON.stringify(savedB));
+        try { localStorage.setItem('habitsBadges', JSON.stringify(savedB)); } catch { /* ignore */ }
+        setEarnedBadges(savedB);
+        setBadgeUnlocked({ id: badgeId, label: badgeLabel, emoji: badgeEmoji });
+        setTimeout(() => setBadgeUnlocked(null), 5000);
+      }
+    } catch { /* ignore */ }
   }, [studentId]);
 
+  /** Calculate memorization score from quiz history */
   const getMemorizationScore = useCallback((): number => {
     const scores = Object.values(quizHistory).filter((q) => q?.accuracy).map((q) => q.accuracy);
     return scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b) / scores.length) : 0;
   }, [quizHistory]);
 
+  /** Determine which badges the user has earned */
   const getEarnedBadges = useCallback((): Badge[] => {
     const bdgs: Badge[] = [];
     const completedDaysCount = Object.keys(dailyData).filter(
-      (day) => dailyData[day]?.readingComplete && Object.values(dailyData[day]?.soap || {}).some((v) => v)
+      (day) => dailyData[day]?.readingComplete && hasSoapContent(dailyData[day])
     ).length;
     if (completedDaysCount === 7) bdgs.push(ALL_BADGES[0]);
     if (completedDaysCount >= 5) bdgs.push(ALL_BADGES[1]);
@@ -999,16 +1234,37 @@ export default function HabitsTracker() {
     });
   }, [currentDay]);
 
+  /** Add an entry to clipboard history */
+  const addToClipboard = useCallback((text: string, label: string) => {
+    if (!text.trim()) return;
+    const entry: ClipboardEntry = {
+      id: generateId(),
+      text: text.trim(),
+      label,
+      timestamp: new Date().toISOString(),
+    };
+    setClipboardHistory((prev) => [entry, ...prev].slice(0, 20));
+  }, []);
+
+  /** Toggle reading completion with star animation */
   const toggleReading = useCallback((day: string) => {
     setDailyData((prev) => {
-      const updated = { ...prev, [day]: { ...prev[day], readingComplete: !prev[day]?.readingComplete } };
-      if (!prev[day]?.readingComplete) {
+      const wasComplete = prev[day]?.readingComplete;
+      const updated = { ...prev, [day]: { ...prev[day], readingComplete: !wasComplete } };
+      if (!wasComplete) {
+        // Mark as recently completed for animation
+        setRecentlyCompleted(day);
+        setTimeout(() => setRecentlyCompleted(null), 2000);
         const allDone = DAYS.filter((d) => updated[d]?.readingComplete).length;
         if (allDone === 7) {
           const newStreak = streakCount + 1;
           setStreakCount(newStreak);
-          if (studentId) { localStorage.setItem(`${studentId}_streak`, JSON.stringify(newStreak)); }
-          localStorage.setItem('habitsStreak', JSON.stringify(newStreak));
+          if (studentId) {
+            try {
+              localStorage.setItem(`${studentId}_streak`, JSON.stringify(newStreak));
+              localStorage.setItem('habitsStreak', JSON.stringify(newStreak));
+            } catch { /* ignore */ }
+          }
           checkAndUnlockBadge('consistency', 'Consistent', '\uD83D\uDCAA');
         }
       }
@@ -1025,20 +1281,23 @@ export default function HabitsTracker() {
     }
   };
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
+  /** Copy text to clipboard and add to history */
+  const copyToClipboard = useCallback((text: string, label: string) => {
+    navigator.clipboard.writeText(text).catch(() => {});
+    addToClipboard(text, label);
     setSaveStatus(`Copied ${label}!`);
     setTimeout(() => setSaveStatus(''), 2000);
-  };
+  }, [addToClipboard]);
 
-  const copySoapEntry = () => {
+  const copySoapEntry = useCallback(() => {
     const todayEntry = SCHEDULE[currentDay];
     const current = dailyData[todayEntry.day] || { soap: {} };
     const soapText = `S.O.A.P. - ${todayEntry.soapRange}\nScripture: ${current.soap?.scripture}\nObservation: ${current.soap?.observation}\nApplication: ${current.soap?.application}\nPrayer: ${current.soap?.prayer}`.trim();
     copyToClipboard(soapText, 'SOAP Entry');
-  };
+  }, [currentDay, dailyData, copyToClipboard]);
 
-  const handleQuizSubmit = () => {
+  /** Submit memory verse quiz */
+  const handleQuizSubmit = useCallback(() => {
     const answer = quiz.answer.toLowerCase();
     const correctWords = ['beginning', 'word', 'god', 'life', 'light', 'darkness', 'mankind'];
     const matchedWords = correctWords.filter((w) => answer.includes(w)).length;
@@ -1048,12 +1307,17 @@ export default function HabitsTracker() {
     setQuiz((prev) => ({ ...prev, submitted: true, correct: isCorrect, accuracy }));
     const updatedHistory = { ...quizHistory, [day]: { accuracy, timestamp: new Date().toISOString() } };
     setQuizHistory(updatedHistory);
-    if (studentId) { localStorage.setItem(`${studentId}_quizHistory`, JSON.stringify(updatedHistory)); }
-    localStorage.setItem('habitsQuizHistory', JSON.stringify(updatedHistory));
+    if (studentId) {
+      try {
+        localStorage.setItem(`${studentId}_quizHistory`, JSON.stringify(updatedHistory));
+        localStorage.setItem('habitsQuizHistory', JSON.stringify(updatedHistory));
+      } catch { /* ignore */ }
+    }
     if (accuracy >= 80) { checkAndUnlockBadge('memory-master', 'Memory Master', '\uD83E\uDDE0'); }
-  };
+  }, [quiz.answer, currentDay, quizHistory, studentId, checkAndUnlockBadge]);
 
-  const exportPrayersToPDF = () => {
+  /** Export prayers as text file */
+  const exportPrayersToPDF = useCallback(() => {
     const day = SCHEDULE[currentDay].day;
     let prayerText = `\nHABITS CLASS - WEEK ${currentWeek} PRAYERS\n${new Date().toLocaleDateString()}\n\n`;
     PRAYERS.forEach((p, idx) => { prayerText += `${p.title.toUpperCase()}\n${dailyData[day]?.prayers?.[idx] || '[No entry]'}\n\n---\n`; });
@@ -1067,28 +1331,81 @@ export default function HabitsTracker() {
     document.body.removeChild(element);
     setSaveStatus('Prayers exported!');
     setTimeout(() => setSaveStatus(''), 2000);
-  };
+  }, [currentDay, currentWeek, dailyData]);
 
   const handleNameSubmit = (name: string) => {
     setStudentName(name);
-    if (studentId) { localStorage.setItem(`${studentId}_name`, name); }
+    if (studentId) { try { localStorage.setItem(`${studentId}_name`, name); } catch { /* ignore */ } }
     setShowNameModal(false);
   };
 
   const handleSwitchUser = () => {
-    if (studentId) { localStorage.removeItem(`${studentId}_name`); }
-    localStorage.removeItem('habitsStudentId');
+    if (studentId) { try { localStorage.removeItem(`${studentId}_name`); } catch { /* ignore */ } }
+    try { localStorage.removeItem('habitsStudentId'); } catch { /* ignore */ }
     window.location.reload();
   };
+
+  /** Force save and show visual confirmation */
+  const handleForceSave = useCallback(() => {
+    if (Object.keys(dailyData).length === 0) return;
+    setIsSaving(true);
+    try {
+      if (studentId) {
+        localStorage.setItem(`${studentId}_habitsWeek${currentWeek}Daily`, JSON.stringify(dailyData));
+      }
+      localStorage.setItem('habitsWeek1Daily', JSON.stringify(dailyData));
+      setLastSavedAt(new Date().toISOString());
+      setSaveMessage('Saved \u2713');
+      setTimeout(() => setSaveMessage(''), 2000);
+    } catch {
+      setSaveMessage('Save failed');
+      setTimeout(() => setSaveMessage(''), 2000);
+    }
+    setTimeout(() => setIsSaving(false), 600);
+  }, [dailyData, studentId, currentWeek]);
+
+  /** Delete a clipboard entry */
+  const deleteClipboardEntry = useCallback((id: string) => {
+    setClipboardHistory((prev) => prev.filter((e) => e.id !== id));
+  }, []);
+
+  /** Clear all clipboard entries */
+  const clearAllClipboard = useCallback(() => {
+    setClipboardHistory([]);
+  }, []);
 
   // ==================== COMPUTED VALUES ====================
   const today = SCHEDULE[currentDay];
   const current = dailyData[today.day] || { readingComplete: false, soap: {}, prayers: {}, checkedBy: '' };
   const completedDays = useMemo(() => Object.keys(dailyData).filter(
-    (day) => dailyData[day]?.readingComplete && Object.values(dailyData[day]?.soap || {}).some((v) => v)
+    (day) => dailyData[day]?.readingComplete && hasSoapContent(dailyData[day])
   ).length, [dailyData]);
   const badges = getEarnedBadges();
   const memScore = getMemorizationScore();
+
+  /** Count quiz attempts for the current day */
+  const todayQuizAttempts = useMemo(() => {
+    const day = SCHEDULE[currentDay].day;
+    const entry = quizHistory[day];
+    return entry ? 1 : 0;
+  }, [quizHistory, currentDay]);
+
+  /** Auto-dismiss badge notification with fade out */
+  const [badgeFading, setBadgeFading] = useState(false);
+  useEffect(() => {
+    if (badgeUnlocked) {
+      const fadeTimer = setTimeout(() => setBadgeFading(true), 4000);
+      return () => clearTimeout(fadeTimer);
+    }
+  }, [badgeUnlocked]);
+
+  // Reset badge fading when notification is dismissed
+  useEffect(() => {
+    if (!badgeUnlocked && badgeFading) {
+      const raf = requestAnimationFrame(() => setBadgeFading(false));
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [badgeUnlocked, badgeFading]);
 
   // ==================== TEACHER MODE ====================
   if (isTeacherMode) {
@@ -1116,14 +1433,19 @@ export default function HabitsTracker() {
         {showReflect && <ReflectBackModal show={showReflect} onClose={() => setShowReflect(false)} dailyData={dailyData} currentWeek={currentWeek} />}
         {showBadges && <BadgesModal show={showBadges} onClose={() => setShowBadges(false)} earnedBadges={earnedBadges} />}
         {showMeter && <MemorizationMeterModal show={showMeter} onClose={() => setShowMeter(false)} score={memScore} attemptCount={Object.keys(quizHistory).length} />}
+        {showClipboard && <ClipboardHistoryModal show={showClipboard} onClose={() => setShowClipboard(false)} clipboardHistory={clipboardHistory} onDeleteEntry={deleteClipboardEntry} onClearAll={clearAllClipboard} />}
       </Suspense>
       {showNameModal && studentId && <OnboardingModal currentTheme={currentTheme} onThemeSelect={setTheme} onComplete={handleNameSubmit} />}
       {showTeacherLogin && <TeacherLoginModal onClose={() => setShowTeacherLogin(false)} onLogin={() => { setIsTeacherMode(true); setShowTeacherLogin(false); }} />}
 
+      {/* Badge Notification with auto-dismiss */}
       {badgeUnlocked && (
-        <div className="fixed top-20 right-4 z-[60] p-4 sm:p-6 rounded-2xl border-2 animate-pulse max-w-xs shadow-lg shadow-black/30" style={{ borderColor: 'var(--th-accent)', backgroundColor: 'var(--th-accent-dim)' }}>
+        <div
+          className={`fixed top-20 right-4 z-[60] p-4 sm:p-6 rounded-2xl border-2 max-w-xs shadow-lg shadow-black/30 slide-in-right ${badgeFading ? 'opacity-0 transition-opacity duration-1000' : ''}`}
+          style={{ borderColor: 'var(--th-accent)', backgroundColor: 'var(--th-accent-dim)' }}
+        >
           <div className="text-center">
-            <p className="text-4xl sm:text-5xl mb-2">{badgeUnlocked.emoji}</p>
+            <p className="text-4xl sm:text-5xl mb-2 badge-unlock">{badgeUnlocked.emoji}</p>
             <p className="font-black uppercase text-sm sm:text-base" style={{ color: 'var(--th-accent)' }}>{badgeUnlocked.label}</p>
             <p className="text-xs mt-2" style={{ color: 'var(--th-text-secondary)' }}>You unlocked a badge!</p>
           </div>
@@ -1150,11 +1472,11 @@ export default function HabitsTracker() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 mt-3 flex-wrap">
-            <span className="text-xs px-2 py-1 font-bold rounded-lg" style={{ backgroundColor: 'var(--th-accent)', color: 'var(--th-bg)' }}>
-              {'\uD83D\uDD25'} {streakCount} week streak
+            <span className="text-xs px-2 py-1 font-bold rounded-lg flex items-center gap-1" style={{ backgroundColor: 'var(--th-accent)', color: 'var(--th-bg)' }}>
+              <Flame className="h-3 w-3" /> {streakCount} week streak
             </span>
             {badges.map((b) => (
-              <span key={b.id} className="text-xs px-2 py-1 font-bold rounded-lg" style={{ backgroundColor: 'var(--th-bg-input)', color: 'var(--th-accent)' }}>
+              <span key={b.id} className="text-xs px-2 py-1 font-bold rounded-lg flex items-center gap-1" style={{ backgroundColor: 'var(--th-bg-input)', color: 'var(--th-accent)' }}>
                 {b.emoji} {b.label}
               </span>
             ))}
@@ -1162,7 +1484,7 @@ export default function HabitsTracker() {
         </div>
       </header>
 
-      {/* Sticky Mini Header */}
+      {/* Sticky Mini Header with Save Button */}
       <div className="sticky top-0 z-50 border-b-2 px-3 sm:px-6 py-2 sm:py-3" style={{ borderColor: 'var(--th-accent)', backgroundColor: 'var(--th-bg)' }}>
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 sm:gap-4 flex-wrap">
           <div className="flex-1 min-w-0">
@@ -1173,13 +1495,29 @@ export default function HabitsTracker() {
           </div>
           <div className="flex gap-2 text-xs items-center">
             <button onClick={handleUndo} className="p-1 rounded-lg transition-colors" title="Undo" style={{ color: 'var(--th-text)' }} aria-label="Undo">{'\u21B6'}</button>
-            <button onClick={() => setShowMeter(true)} className="p-1 rounded-lg transition-colors" title="Memorization" style={{ color: 'var(--th-text)' }} aria-label="Memorization meter">{'\uD83D\uDCCA'} {memScore}%</button>
+            <button onClick={() => setShowMeter(true)} className="p-1 rounded-lg transition-colors flex items-center gap-1" title="Memorization" style={{ color: 'var(--th-text)' }} aria-label="Memorization meter">
+              <Zap className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="text-[10px] sm:text-xs">{memScore}%</span>
+            </button>
+            <button
+              onClick={handleForceSave}
+              className={`p-1.5 rounded-lg transition-all flex items-center gap-1 border ${isSaving ? 'save-pulse' : ''}`}
+              title="Save Now"
+              style={{
+                color: saveMessage === 'Saved \u2713' ? 'var(--th-success)' : 'var(--th-text)',
+                borderColor: saveMessage === 'Saved \u2713' ? 'var(--th-success)' : 'var(--th-border)',
+                backgroundColor: saveMessage === 'Saved \u2713' ? 'var(--th-success)' + '15' : 'transparent',
+              }}
+              aria-label="Save now"
+            >
+              <Save className="h-3 w-3" />
+              {saveMessage && <span className="text-[10px] font-bold hidden sm:inline">{saveMessage}</span>}
+            </button>
             <p className="font-bold text-[10px] sm:text-xs" style={{ color: saveStatus === 'Saved \u2713' ? 'var(--th-success)' : 'var(--th-text-muted)' }}>{saveStatus}</p>
           </div>
         </div>
       </div>
 
-      {/* Day Selector */}
+      {/* Day Selector with Status System */}
       <nav className="border-b-2 sticky top-[44px] sm:top-[52px] z-40" style={{ borderColor: 'var(--th-border)', backgroundColor: 'var(--th-bg-elevated)' }}>
         <div className="max-w-5xl mx-auto px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-1 sm:gap-2 overflow-x-auto no-scrollbar">
           <button onClick={() => currentDay > 0 && setCurrentDay(currentDay - 1)} disabled={currentDay === 0} className="p-2 disabled:opacity-30 flex-shrink-0 rounded-lg transition-colors" style={{ color: 'var(--th-text)' }} aria-label="Previous day">
@@ -1187,11 +1525,53 @@ export default function HabitsTracker() {
           </button>
           <div className="flex gap-1 sm:gap-2 justify-center flex-1 min-w-0">
             {DAYS.map((day, idx) => {
-              const isComplete = dailyData[day]?.readingComplete && Object.values(dailyData[day]?.soap || {}).some((v) => v);
+              const status = getDayStatus(idx, dailyData);
               const isActive = currentDay === idx;
+              const isRecent = recentlyCompleted === day;
+
+              // Style based on status
+              let bgStyle = 'var(--th-bg-card)';
+              let borderStyle = 'var(--th-border)';
+              let colorStyle = 'var(--th-text-muted)';
+              let statusDot = null;
+
+              if (status === 'done') {
+                bgStyle = 'var(--th-accent-dim)';
+                borderStyle = 'var(--th-success)';
+                colorStyle = 'var(--th-success)';
+                statusDot = <Star className="h-2.5 w-2.5" style={{ color: 'var(--th-success)' }} />;
+              } else if (status === 'past-due') {
+                bgStyle = 'rgba(239,68,68,0.08)';
+                borderStyle = 'var(--th-danger)';
+                colorStyle = 'var(--th-danger)';
+                statusDot = <AlertTriangle className="h-2.5 w-2.5 pulse-warning" style={{ color: 'var(--th-danger)' }} />;
+              } else if (status === 'due-today') {
+                bgStyle = 'rgba(234,179,8,0.08)';
+                borderStyle = 'var(--th-warning)';
+                colorStyle = 'var(--th-warning)';
+                statusDot = <AlertCircle className="h-2.5 w-2.5" style={{ color: 'var(--th-warning)' }} />;
+              }
+
+              if (isActive) {
+                bgStyle = 'var(--th-accent)';
+                borderStyle = 'var(--th-accent)';
+                colorStyle = 'var(--th-bg)';
+              }
+
               return (
-                <button key={day} onClick={() => setCurrentDay(idx)} className="px-2 sm:px-3 py-2 font-bold uppercase text-[10px] sm:text-xs border-2 transition-all flex-shrink-0 rounded-lg active:scale-[0.97]" style={{ borderColor: isActive ? 'var(--th-accent)' : isComplete ? 'var(--th-success)' : 'var(--th-border)', backgroundColor: isActive ? 'var(--th-accent)' : isComplete ? 'var(--th-accent-dim)' : 'var(--th-bg-card)', color: isActive ? 'var(--th-bg)' : isComplete ? 'var(--th-success)' : 'var(--th-text-muted)' }}>
-                  {day.slice(0, 3)}
+                <button
+                  key={day}
+                  onClick={() => setCurrentDay(idx)}
+                  className="px-2 sm:px-3 py-2 font-bold uppercase text-[10px] sm:text-xs border-2 transition-all flex-shrink-0 rounded-lg active:scale-[0.97] flex flex-col items-center gap-0.5"
+                  style={{ borderColor: borderStyle, backgroundColor: bgStyle, color: colorStyle }}
+                >
+                  <span>{day.slice(0, 3)}</span>
+                  {statusDot}
+                  {isRecent && (
+                    <span className="star-burst text-[8px]" style={{ color: 'var(--th-success)' }}>
+                      <Star className="h-2.5 w-2.5" />
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -1223,9 +1603,50 @@ export default function HabitsTracker() {
               <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: 'var(--th-accent)' }} />
               Read {today.chapter}
             </h3>
-            <button onClick={() => toggleReading(today.day)} className="w-full p-4 sm:p-6 border-2 sm:border-4 font-bold uppercase transition-all text-sm sm:text-lg rounded-xl active:scale-[0.98]" style={{ borderColor: current.readingComplete ? 'var(--th-accent)' : 'var(--th-border)', backgroundColor: current.readingComplete ? 'var(--th-accent)' : 'var(--th-bg-input)', color: current.readingComplete ? 'var(--th-bg)' : 'var(--th-text-secondary)' }}>
-              {current.readingComplete ? <span className="flex items-center justify-center gap-3"><Check className="h-5 w-5 sm:h-6 sm:w-6" /> Reading Complete {'\u2713'}</span> : 'Mark Reading Complete'}
+            <button
+              onClick={() => toggleReading(today.day)}
+              className="w-full p-4 sm:p-6 border-2 sm:border-4 font-bold uppercase transition-all text-sm sm:text-lg rounded-xl active:scale-[0.98]"
+              style={{
+                borderColor: current.readingComplete ? 'var(--th-accent)' : 'var(--th-border)',
+                backgroundColor: current.readingComplete ? 'var(--th-accent)' : 'var(--th-bg-input)',
+                color: current.readingComplete ? 'var(--th-bg)' : 'var(--th-text-secondary)',
+              }}
+            >
+              {current.readingComplete ? (
+                <span className="flex items-center justify-center gap-3">
+                  {recentlyCompleted === today.day ? (
+                    <>
+                      <span className="star-burst"><Star className="h-5 w-5 sm:h-6 sm:w-6" fill="currentColor" /></span>
+                      <span className="checkmark-appear">Completed ✓</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-5 w-5 sm:h-6 sm:w-6" />
+                      Reading Complete ✓
+                    </>
+                  )}
+                </span>
+              ) : 'Mark Reading Complete'}
             </button>
+
+            {/* Reward Section - shown when reading is complete */}
+            {current.readingComplete && (
+              <div className="rounded-xl p-4 border-2 space-y-2" style={{ borderColor: 'var(--th-success)', backgroundColor: 'var(--th-accent-dim)' }}>
+                <div className="flex items-center gap-2">
+                  <Star className="h-5 w-5" style={{ color: 'var(--th-success)' }} fill="var(--th-success)" />
+                  <p className="text-sm font-bold" style={{ color: 'var(--th-success)' }}>Reading Complete!</p>
+                </div>
+                <p className="text-xs" style={{ color: 'var(--th-text-secondary)' }}>
+                  Great job! Now complete your S.O.A.P. journal entry below to earn a full star for this day.
+                </p>
+                {hasSoapContent(current) && (
+                  <div className="flex items-center gap-2 mt-2 pt-2" style={{ borderTop: '1px solid var(--th-success)' + '40' }}>
+                    <Trophy className="h-4 w-4" style={{ color: 'var(--th-accent)' }} />
+                    <p className="text-xs font-bold" style={{ color: 'var(--th-accent)' }}>Full star earned! This day is complete.</p>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           {/* TASK B: DAILY S.O.A.P. */}
@@ -1246,12 +1667,29 @@ export default function HabitsTracker() {
               <p className="text-xs sm:text-sm italic" style={{ color: 'var(--th-text-secondary)' }}>&ldquo;{today.soapText}&rdquo;</p>
             </div>
             <div className="space-y-4 sm:space-y-5">
-              {SOAP_FIELDS.map((field) => (
-                <div key={field.key} className="pl-3 sm:pl-6" style={{ borderLeft: '4px solid var(--th-accent)' }}>
-                  <label className="block text-[10px] sm:text-xs font-bold uppercase mb-2" style={{ color: 'var(--th-accent)' }}>{field.label}</label>
-                  <textarea value={current.soap?.[field.key] || ''} onChange={(e) => handleSoapChange(today.day, field.key, e.target.value)} onInput={handleTextareaInput} placeholder={`Write your ${field.key}...`} className="w-full p-3 font-mono text-xs sm:text-sm border-2 rounded-lg focus:outline-none resize-none" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-border)', color: 'var(--th-text)' }} rows={3} />
-                </div>
-              ))}
+              {SOAP_FIELDS.map((field) => {
+                const fieldValue = current.soap?.[field.key] || '';
+                const wordCount = fieldValue.trim() ? fieldValue.trim().split(/\s+/).length : 0;
+                return (
+                  <div key={field.key} className="pl-3 sm:pl-6" style={{ borderLeft: '4px solid var(--th-accent)' }}>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <label className="text-[10px] sm:text-xs font-bold uppercase" style={{ color: 'var(--th-accent)' }}>{field.label}</label>
+                      {wordCount > 0 && (
+                        <span className="text-[10px]" style={{ color: 'var(--th-text-muted)' }}>{wordCount} word{wordCount !== 1 ? 's' : ''}</span>
+                      )}
+                    </div>
+                    <textarea
+                      value={fieldValue}
+                      onChange={(e) => handleSoapChange(today.day, field.key, e.target.value)}
+                      onInput={handleTextareaInput}
+                      placeholder={`Write your ${field.key}...`}
+                      className="w-full p-3 font-mono text-xs sm:text-sm border-2 rounded-lg focus:outline-none resize-none"
+                      style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-border)', color: 'var(--th-text)' }}
+                      rows={3}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </section>
 
@@ -1267,13 +1705,28 @@ export default function HabitsTracker() {
               </button>
             </div>
             <div className="space-y-4">
-              {PRAYERS.map((prayer, idx) => (
-                <div key={idx} className="border-2 p-3 sm:p-4 rounded-xl" style={{ borderColor: 'var(--th-border)', backgroundColor: 'var(--th-bg)' }}>
-                  <p className="text-[10px] sm:text-xs font-bold uppercase mb-2 sm:mb-3" style={{ color: 'var(--th-accent)' }}>{prayer.title}</p>
-                  <p className="text-xs sm:text-sm mb-2 sm:mb-3 italic" style={{ color: 'var(--th-text-muted)' }}>&ldquo;{prayer.prompt}&rdquo;</p>
-                  <textarea value={current.prayers?.[idx] || ''} onChange={(e) => handlePrayerChange(today.day, idx, e.target.value)} onInput={handleTextareaInput} placeholder={`Write your ${prayer.title.toLowerCase()}...`} className="w-full p-2 font-mono text-xs sm:text-sm border-2 rounded-lg focus:outline-none resize-none" style={{ backgroundColor: 'var(--th-bg-card)', borderColor: 'var(--th-border-hover)', color: 'var(--th-text)' }} rows={3} />
-                </div>
-              ))}
+              {PRAYERS.map((prayer, idx) => {
+                const prayerValue = current.prayers?.[idx] || '';
+                const wordCount = prayerValue.trim() ? prayerValue.trim().split(/\s+/).length : 0;
+                return (
+                  <div key={idx} className="border-2 p-3 sm:p-4 rounded-xl" style={{ borderColor: 'var(--th-border)', backgroundColor: 'var(--th-bg)' }}>
+                    <p className="text-[10px] sm:text-xs font-bold uppercase mb-2 sm:mb-3" style={{ color: 'var(--th-accent)' }}>{prayer.title}</p>
+                    <p className="text-xs sm:text-sm mb-2 sm:mb-3 italic" style={{ color: 'var(--th-text-muted)' }}>&ldquo;{prayer.prompt}&rdquo;</p>
+                    <textarea
+                      value={prayerValue}
+                      onChange={(e) => handlePrayerChange(today.day, idx, e.target.value)}
+                      onInput={handleTextareaInput}
+                      placeholder={`Write your ${prayer.title.toLowerCase()}...`}
+                      className="w-full p-2 font-mono text-xs sm:text-sm border-2 rounded-lg focus:outline-none resize-none"
+                      style={{ backgroundColor: 'var(--th-bg-card)', borderColor: 'var(--th-border-hover)', color: 'var(--th-text)' }}
+                      rows={3}
+                    />
+                    {wordCount > 0 && (
+                      <p className="text-[10px] mt-1 text-right" style={{ color: 'var(--th-text-muted)' }}>{wordCount} word{wordCount !== 1 ? 's' : ''}</p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </section>
 
@@ -1295,23 +1748,36 @@ export default function HabitsTracker() {
         </div>
 
         {/* WEEK ACTIONS */}
-        <div className="mt-6 sm:mt-12 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+        <div className="mt-6 sm:mt-12 grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3">
           {[
             { icon: <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />, label: 'Reflect Back', onClick: () => setShowReflect(true) },
             { icon: <Award className="h-4 w-4 sm:h-5 sm:w-5" />, label: 'Badges', onClick: () => setShowBadges(true) },
-            { icon: <Eye className="h-4 w-4 sm:h-5 sm:w-5" />, label: 'Memory Meter', onClick: () => setShowMeter(true) },
+            { icon: <Zap className="h-4 w-4 sm:h-5 sm:w-5" />, label: 'Memory Meter', onClick: () => setShowMeter(true) },
             { icon: <Download className="h-4 w-4 sm:h-5 sm:w-5" />, label: 'Export Prayers', onClick: exportPrayersToPDF },
+            { icon: <ClipboardList className="h-4 w-4 sm:h-5 sm:w-5" />, label: 'Clipboard', onClick: () => setShowClipboard(true), badge: clipboardHistory.length > 0 ? clipboardHistory.length : undefined },
           ].map((action) => (
-            <button key={action.label} onClick={action.onClick} className="p-3 sm:p-4 border-2 font-bold text-[10px] sm:text-xs uppercase text-center flex flex-col gap-1.5 sm:gap-2 items-center transition-all active:scale-[0.97] rounded-xl hover:shadow-lg hover:shadow-black/10" style={{ backgroundColor: 'var(--th-bg-card)', borderColor: 'var(--th-border)', color: 'var(--th-text)' }}>
+            <button key={action.label} onClick={action.onClick} className="p-3 sm:p-4 border-2 font-bold text-[10px] sm:text-xs uppercase text-center flex flex-col gap-1.5 sm:gap-2 items-center transition-all active:scale-[0.97] rounded-xl hover:shadow-lg hover:shadow-black/10 relative" style={{ backgroundColor: 'var(--th-bg-card)', borderColor: 'var(--th-border)', color: 'var(--th-text)' }}>
               {action.icon}
               <span>{action.label}</span>
+              {action.badge && (
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black" style={{ backgroundColor: 'var(--th-accent)', color: 'var(--th-bg)' }}>
+                  {action.badge > 9 ? '9+' : action.badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
         {/* MEMORY VERSE QUIZ */}
         <section className="mt-6 sm:mt-12 border-2 sm:border-4 p-4 sm:p-8 space-y-4 sm:space-y-6 rounded-2xl" style={{ borderColor: 'var(--th-accent)', backgroundColor: 'var(--th-bg-card)' }}>
-          <h2 className="text-lg sm:text-2xl uppercase">Memory Verse Quiz ({MEMORY_REFERENCE})</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-lg sm:text-2xl uppercase">Memory Verse Quiz ({MEMORY_REFERENCE})</h2>
+            {todayQuizAttempts > 0 && (
+              <span className="text-[10px] px-2 py-1 rounded-lg font-bold uppercase flex items-center gap-1" style={{ backgroundColor: 'var(--th-accent-dim)', color: 'var(--th-accent)' }}>
+                <CheckCircle2 className="h-3 w-3" /> Attempted
+              </span>
+            )}
+          </div>
           <div className="border-2 sm:border-4 p-4 sm:p-6 rounded-xl" style={{ borderColor: 'var(--th-border)', backgroundColor: 'var(--th-bg)' }}>
             <p className="text-base sm:text-lg italic text-center leading-relaxed" style={{ color: 'var(--th-text-secondary)', fontFamily: "'DM Serif Display', serif" }}>&ldquo;{MEMORY_VERSE}&rdquo;</p>
             <p className="text-[10px] sm:text-xs text-center mt-4 font-mono" style={{ color: 'var(--th-text-muted)' }}>{MEMORY_REFERENCE}</p>
@@ -1323,9 +1789,12 @@ export default function HabitsTracker() {
               <button onClick={handleQuizSubmit} className="w-full font-bold uppercase py-3 transition-all text-sm rounded-xl active:scale-[0.98]" style={{ backgroundColor: 'var(--th-accent)', color: 'var(--th-bg)' }}>Check My Answer</button>
             ) : (
               <div className="p-3 sm:p-6 border-2 sm:border-4 rounded-xl" style={{ borderColor: quiz.correct ? 'var(--th-success)' : 'var(--th-border)', backgroundColor: quiz.correct ? 'var(--th-accent-dim)' : 'var(--th-bg-card)' }}>
-                <p className="font-bold uppercase mb-2 text-sm sm:text-base">{quiz.correct ? '\u2713 PERFECT! YOU GOT IT!' : `${quiz.accuracy}% Match`}</p>
+                <div className="flex items-center gap-2 mb-2">
+                  {quiz.correct ? <Star className="h-4 w-4" style={{ color: 'var(--th-success)' }} fill="var(--th-success)" /> : <AlertCircle className="h-4 w-4" style={{ color: 'var(--th-warning)' }} />}
+                  <p className="font-bold uppercase mb-0 text-sm sm:text-base">{quiz.correct ? '\u2713 PERFECT! YOU GOT IT!' : `${quiz.accuracy}% Match`}</p>
+                </div>
                 <div className="w-full h-2 rounded-full mb-3 overflow-hidden" style={{ backgroundColor: 'var(--th-bg-input)' }}>
-                  <div className="h-2 rounded-full transition-all duration-500" style={{ width: `${quiz.accuracy}%`, backgroundColor: 'var(--th-accent)' }} />
+                  <div className="h-2 rounded-full transition-all duration-500" style={{ width: `${quiz.accuracy}%`, backgroundColor: quiz.correct ? 'var(--th-success)' : 'var(--th-accent)' }} />
                 </div>
                 <button onClick={() => setQuiz({ answer: '', submitted: false, correct: false, accuracy: 0 })} className="font-bold uppercase text-xs transition-colors" style={{ color: 'var(--th-accent)' }}>Try Again</button>
               </div>
@@ -1334,10 +1803,17 @@ export default function HabitsTracker() {
         </section>
       </main>
 
-      {/* Footer */}
+      {/* Footer with last saved time */}
       <footer className="border-t-2 p-4 sm:p-6 mt-8 sm:mt-12 mb-8" style={{ borderColor: 'var(--th-accent)', backgroundColor: 'var(--th-bg-elevated)' }}>
-        <div className="max-w-5xl mx-auto text-center text-[10px] sm:text-xs uppercase tracking-widest" style={{ color: 'var(--th-text-muted)' }}>
-          {'\u2713'} All progress saved automatically &middot; Installable as app &middot; Offline support enabled
+        <div className="max-w-5xl mx-auto text-center">
+          <p className="text-[10px] sm:text-xs uppercase tracking-widest" style={{ color: 'var(--th-text-muted)' }}>
+            {'\u2713'} All progress saved automatically &middot; Installable as app &middot; Offline support enabled
+          </p>
+          {lastSavedAt && (
+            <p className="text-[10px] mt-1 flex items-center justify-center gap-1" style={{ color: 'var(--th-text-muted)', opacity: 0.6 }}>
+              <Clock className="h-3 w-3" /> Last saved: {getRelativeTime(lastSavedAt)}
+            </p>
+          )}
         </div>
       </footer>
 

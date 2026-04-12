@@ -16,6 +16,8 @@ node_modules
 # next.js
 /.next/
 /out/
+# Allow out for GitHub Pages
+!/out/
 
 # production
 /build
@@ -52,3 +54,10 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# Development artifacts
+/deploy/
+/habits1_extracted/
+/upload/
+/db/
+/download/README.md
