@@ -136,7 +136,7 @@ const SOAP_FIELDS: { key: keyof SoapData; label: string }[] = [
 const TEACHER_PASSWORD = '/123';
 
 // ==================== THEME SELECTOR COMPONENT ====================
-function ThemeSelector({ currentTheme, setTheme }: { currentTheme: string; setTheme: (t: string) => void }) {
+const ThemeSelector = React.memo(function ThemeSelector({ currentTheme, setTheme }: { currentTheme: string; setTheme: (t: string) => void }) {
   const [open, setOpen] = useState(false);
 
   const handleSelect = (themeId: string) => {
@@ -191,10 +191,10 @@ function ThemeSelector({ currentTheme, setTheme }: { currentTheme: string; setTh
       </button>
     </div>
   );
-}
+});
 
 // ==================== MODAL COMPONENTS ====================
-function ReflectBackModal({
+const ReflectBackModal = React.memo(function ReflectBackModal({
   show,
   onClose,
   dailyData,
@@ -247,9 +247,9 @@ function ReflectBackModal({
       </div>
     </div>
   );
-}
+});
 
-function BadgesModal({
+const BadgesModal = React.memo(function BadgesModal({
   show,
   onClose,
   earnedBadges,
@@ -298,9 +298,9 @@ function BadgesModal({
       </div>
     </div>
   );
-}
+});
 
-function MemorizationMeterModal({
+const MemorizationMeterModal = React.memo(function MemorizationMeterModal({
   show,
   onClose,
   score,
@@ -357,52 +357,139 @@ function MemorizationMeterModal({
       </div>
     </div>
   );
-}
+});
 
-function StudentNameModal({
-  studentId,
-  onClose,
+const OnboardingModal = React.memo(function OnboardingModal({
+  currentTheme,
+  onThemeSelect,
+  onComplete,
 }: {
-  studentId: string;
-  onClose: (name: string) => void;
+  currentTheme: string;
+  onThemeSelect: (t: string) => void;
+  onComplete: (name: string) => void;
 }) {
+  const [step, setStep] = useState(0); // 0 = name, 1 = theme
   const [name, setName] = useState('');
+
+  const handleNameSubmit = () => {
+    if (name.trim()) {
+      setStep(1);
+    }
+  };
+
+  const handleThemeConfirm = () => {
+    onComplete(name.trim());
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}>
-      <div className="rounded-xl p-6 sm:p-8 max-w-sm w-full shadow-lg shadow-black/30 border-2" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
-        <h2 className="text-2xl font-black mb-2" style={{ color: 'var(--th-accent)' }}>Welcome!</h2>
-        <p className="mb-6 text-sm" style={{ color: 'var(--th-text-secondary)' }}>What&apos;s your name? This helps your teacher track your progress.</p>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && name.trim()) {
-              onClose(name.trim());
-            }
-          }}
-          placeholder="Enter your name"
-          className="w-full px-4 py-3 mb-4 rounded-lg border-2 focus:outline-none focus:ring-2"
-          style={{
-            backgroundColor: 'var(--th-bg-input)',
-            borderColor: 'var(--th-border)',
-            color: 'var(--th-text)',
-            ['--tw-ring-color' as string]: 'var(--th-accent)',
-          }}
-          autoFocus
-        />
-        <button
-          onClick={() => name.trim() && onClose(name.trim())}
-          className="w-full font-bold uppercase py-3 rounded-lg transition-colors active:scale-[0.98] disabled:opacity-40"
-          style={{ backgroundColor: 'var(--th-accent)', color: 'var(--th-bg)' }}
-          disabled={!name.trim()}
-        >
-          Continue
-        </button>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.95)' }}>
+      <div className="rounded-2xl p-6 sm:p-10 max-w-md w-full shadow-2xl border-2" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+        {step === 0 ? (
+          /* Step 1: Name Input */
+          <div className="space-y-6">
+            {/* Decorative accent line */}
+            <div className="w-12 h-1 rounded-full" style={{ backgroundColor: 'var(--th-accent)' }} />
+            <div>
+              <h2 className="text-3xl sm:text-4xl mb-2" style={{ color: 'var(--th-accent)', fontFamily: "'DM Serif Display', serif" }}>
+                Welcome
+              </h2>
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--th-text-secondary)' }}>
+                What&apos;s your name? This helps your teacher track your spiritual growth journey.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleNameSubmit();
+                }}
+                placeholder="Enter your name"
+                className="w-full px-5 py-4 rounded-xl border-2 focus:outline-none text-base"
+                style={{
+                  backgroundColor: 'var(--th-bg-input)',
+                  borderColor: 'var(--th-border)',
+                  color: 'var(--th-text)',
+                }}
+                autoFocus
+              />
+              <button
+                onClick={handleNameSubmit}
+                className="w-full font-bold uppercase py-4 rounded-xl transition-all active:scale-[0.98] disabled:opacity-30 text-sm tracking-wider"
+                style={{ backgroundColor: 'var(--th-accent)', color: 'var(--th-bg)' }}
+                disabled={!name.trim()}
+              >
+                Next &rarr;
+              </button>
+            </div>
+            <p className="text-[10px] text-center uppercase tracking-widest" style={{ color: 'var(--th-text-muted)' }}>
+              Step 1 of 2 &middot; Your Profile
+            </p>
+          </div>
+        ) : (
+          /* Step 2: Theme Selection */
+          <div className="space-y-6">
+            {/* Decorative accent line */}
+            <div className="w-12 h-1 rounded-full" style={{ backgroundColor: 'var(--th-accent)' }} />
+            <div>
+              <h2 className="text-3xl sm:text-4xl mb-2" style={{ color: 'var(--th-accent)', fontFamily: "'DM Serif Display', serif" }}>
+                Choose Your Style
+              </h2>
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--th-text-secondary)' }}>
+                Pick a theme that inspires your daily devotionals, {name}. You can always change it later.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {THEMES.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => onThemeSelect(t.id)}
+                  className="p-4 rounded-xl border-2 transition-all active:scale-[0.97] text-left"
+                  style={{
+                    borderColor: t.id === currentTheme ? 'var(--th-accent)' : 'var(--th-border)',
+                    backgroundColor: t.id === currentTheme ? 'var(--th-accent-dim)' : 'var(--th-bg-card)',
+                  }}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <span
+                      className="w-8 h-8 rounded-full flex-shrink-0 border-2 shadow-md"
+                      style={{ backgroundColor: t.color, borderColor: t.id === currentTheme ? t.color : 'var(--th-border)' }}
+                    />
+                    <span className="text-xs font-bold leading-tight" style={{ color: 'var(--th-text)' }}>
+                      {t.label}
+                    </span>
+                  </div>
+                  <div className="flex gap-1">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color }} />
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: t.bg, border: '1px solid var(--th-border)' }} />
+                  </div>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={handleThemeConfirm}
+              className="w-full font-bold uppercase py-4 rounded-xl transition-all active:scale-[0.98] text-sm tracking-wider"
+              style={{ backgroundColor: 'var(--th-accent)', color: 'var(--th-bg)' }}
+            >
+              Start My Journey &rarr;
+            </button>
+            <button
+              onClick={() => setStep(0)}
+              className="w-full font-bold uppercase py-2 rounded-xl text-xs transition-colors"
+              style={{ color: 'var(--th-text-muted)' }}
+            >
+              &larr; Back
+            </button>
+            <p className="text-[10px] text-center uppercase tracking-widest" style={{ color: 'var(--th-text-muted)' }}>
+              Step 2 of 2 &middot; Theme
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
-}
+});
 
 function TeacherLoginModal({
   onClose,
@@ -1216,7 +1303,7 @@ export default function HabitsTracker() {
         {showBadges && <BadgesModal show={showBadges} onClose={() => setShowBadges(false)} earnedBadges={earnedBadges} />}
         {showMeter && <MemorizationMeterModal show={showMeter} onClose={() => setShowMeter(false)} score={memScore} attemptCount={Object.keys(quizHistory).length} />}
       </Suspense>
-      {showNameModal && studentId && <StudentNameModal studentId={studentId} onClose={handleNameSubmit} />}
+      {showNameModal && studentId && <OnboardingModal currentTheme={currentTheme} onThemeSelect={setTheme} onComplete={handleNameSubmit} />}
       {showTeacherLogin && <TeacherLoginModal onClose={() => setShowTeacherLogin(false)} onLogin={() => { setIsTeacherMode(true); setShowTeacherLogin(false); }} />}
 
       {/* Badge Unlock Notification */}
