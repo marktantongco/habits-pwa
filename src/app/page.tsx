@@ -526,18 +526,18 @@ May God guide your path.
   }
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-x-hidden" style={{ fontFamily: "'Syne', sans-serif" }}>
+    <div className="min-h-screen bg-black text-white overflow-x-hidden pb-[env(safe-area-inset-bottom)]" style={{ fontFamily: "'Syne', sans-serif" }}>
       <ReflectBackModal show={showReflect} onClose={() => setShowReflect(false)} dailyData={dailyData} currentWeek={currentWeek} />
       <BadgesModal show={showBadges} onClose={() => setShowBadges(false)} earnedBadges={earnedBadgeIds} />
       <MemorizationMeterModal show={showMeter} onClose={() => setShowMeter(false)} score={memScore} attemptCount={Object.keys(quizHistory).length} />
 
       {/* Full Header */}
-      <header className="border-b-4 border-yellow-300 bg-black p-6">
-        <div className="max-w-5xl mx-auto px-4">
-          <h1 className="text-4xl font-black mb-2" style={{ color: '#FFEA00' }}>
+      <header className="border-b-4 border-yellow-300 bg-black p-4 sm:p-6">
+        <div className="max-w-5xl mx-auto px-2 sm:px-4">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black mb-2" style={{ color: '#FFEA00' }}>
             HABITS CLASS: WEEK {currentWeek}
           </h1>
-          <div className="flex items-center gap-3 mt-3 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-3 mt-3 flex-wrap">
             <span className="text-xs bg-yellow-300 text-black px-2 py-1 font-bold">
               {'\uD83D\uDD25'} {streakCount} week streak
             </span>
@@ -551,8 +551,8 @@ May God guide your path.
       </header>
 
       {/* Sticky Minimal Header */}
-      <div className="sticky top-0 z-50 bg-black border-b-4 border-yellow-300 px-6 py-3">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+      <div className="sticky top-0 z-50 bg-black border-b-4 border-yellow-300 px-3 sm:px-6 py-2 sm:py-3">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 sm:gap-4 flex-wrap">
           <div className="flex-1 min-w-0">
             <p className="text-xs text-gray-400 uppercase tracking-widest truncate">
               Daily Devotional &middot; John 1-7 &middot; Knowing God
@@ -574,8 +574,8 @@ May God guide your path.
       </div>
 
       {/* Day Selector */}
-      <nav className="bg-gray-900 border-b-4 border-gray-800 sticky top-16 z-40">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+      <nav className="bg-gray-900 border-b-4 border-gray-800 sticky top-[52px] sm:top-16 z-40">
+        <div className="max-w-5xl mx-auto px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-1 sm:gap-2 overflow-x-auto no-scrollbar">
           <button onClick={() => currentDay > 0 && setCurrentDay(currentDay - 1)} disabled={currentDay === 0} className="p-2 disabled:opacity-30 flex-shrink-0">
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -603,13 +603,13 @@ May God guide your path.
       </nav>
 
       {/* Content */}
-      <main className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-6">
+      <main className="w-full max-w-5xl mx-auto px-2 sm:px-6 py-4 sm:py-6">
         {/* Daily Devotional Card */}
-        <div className="bg-gray-900 border-4 border-yellow-300 p-6 sm:p-8 space-y-8 overflow-hidden">
+        <div className="bg-gray-900 border-2 sm:border-4 border-yellow-300 p-4 sm:p-8 space-y-6 sm:space-y-8 overflow-hidden rounded-sm">
           {/* Day Header */}
           <div className="flex items-start justify-between pb-6 border-b-2 border-gray-800">
             <div>
-              <h2 className="text-3xl font-black mb-2">{today.day.toUpperCase()}</h2>
+              <h2 className="text-2xl sm:text-3xl font-black mb-2">{today.day.toUpperCase()}</h2>
               <p className="text-gray-400 uppercase tracking-widest text-sm">{today.chapter}</p>
             </div>
             <div className="text-right">
@@ -620,13 +620,13 @@ May God guide your path.
 
           {/* TASK A: BIBLE READING */}
           <section className="space-y-4">
-            <h3 className="text-xl font-black uppercase flex items-center gap-2">
-              <BookOpen className="h-5 w-5" style={{ color: '#FFEA00' }} />
+            <h3 className="text-lg sm:text-xl font-black uppercase flex items-center gap-2">
+              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: '#FFEA00' }} />
               Read {today.chapter}
             </h3>
             <button
               onClick={() => toggleReading(today.day)}
-              className={`w-full p-6 border-4 font-bold uppercase transition-all text-lg ${
+              className={`w-full p-4 sm:p-6 border-2 sm:border-4 font-bold uppercase transition-all text-base sm:text-lg ${
                 current.readingComplete
                   ? 'border-yellow-300 bg-yellow-300 text-black'
                   : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-yellow-300'
@@ -647,8 +647,8 @@ May God guide your path.
           <section className="space-y-4 border-t-2 border-gray-800 pt-8">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-black uppercase flex items-center gap-2 mb-2">
-                  <Lightbulb className="h-5 w-5" style={{ color: '#FFEA00' }} />
+                <h3 className="text-lg sm:text-xl font-black uppercase flex items-center gap-2 mb-2">
+                  <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: '#FFEA00' }} />
                   Daily S.O.A.P.
                 </h3>
                 <p className="text-gray-400 text-sm">{today.soapRange}</p>
@@ -664,7 +664,7 @@ May God guide your path.
 
             <div className="space-y-5">
               {SOAP_FIELDS.map((field) => (
-                <div key={field.key} className="border-l-4 border-yellow-300 pl-6">
+                <div key={field.key} className="border-l-4 border-yellow-300 pl-4 sm:pl-6">
                   <label className="block text-xs font-bold uppercase text-yellow-300 mb-2">{field.label}</label>
                   <textarea
                     value={current.soap?.[field.key] || ''}
@@ -683,7 +683,7 @@ May God guide your path.
           <section className="space-y-4 border-t-2 border-gray-800 pt-8">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-black uppercase flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" style={{ color: '#FFEA00' }} />
+                <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: '#FFEA00' }} />
                 Prayer Prompts
               </h3>
               <button onClick={exportPrayersToPDF} className="p-2 hover:bg-gray-800 rounded text-xs flex gap-1 items-center">
@@ -731,42 +731,42 @@ May God guide your path.
         </div>
 
         {/* WEEK ACTIONS */}
-        <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="mt-8 sm:mt-12 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
           <button
             onClick={() => setShowReflect(true)}
-            className="p-4 bg-gray-900 border-2 border-gray-700 font-bold text-xs uppercase hover:border-yellow-300 text-center flex flex-col gap-2 items-center transition-colors"
+            className="p-3 sm:p-4 bg-gray-900 border-2 border-gray-700 font-bold text-[10px] sm:text-xs uppercase hover:border-yellow-300 active:bg-gray-800 text-center flex flex-col gap-1.5 sm:gap-2 items-center transition-colors"
           >
-            <BarChart3 className="h-5 w-5" />
-            Reflect Back
+            <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span>Reflect Back</span>
           </button>
           <button
             onClick={() => setShowBadges(true)}
-            className="p-4 bg-gray-900 border-2 border-gray-700 font-bold text-xs uppercase hover:border-yellow-300 text-center flex flex-col gap-2 items-center transition-colors"
+            className="p-3 sm:p-4 bg-gray-900 border-2 border-gray-700 font-bold text-[10px] sm:text-xs uppercase hover:border-yellow-300 active:bg-gray-800 text-center flex flex-col gap-1.5 sm:gap-2 items-center transition-colors"
           >
-            <Award className="h-5 w-5" />
-            Badges
+            <Award className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span>Badges</span>
           </button>
           <button
             onClick={() => setShowMeter(true)}
-            className="p-4 bg-gray-900 border-2 border-gray-700 font-bold text-xs uppercase hover:border-yellow-300 text-center flex flex-col gap-2 items-center transition-colors"
+            className="p-3 sm:p-4 bg-gray-900 border-2 border-gray-700 font-bold text-[10px] sm:text-xs uppercase hover:border-yellow-300 active:bg-gray-800 text-center flex flex-col gap-1.5 sm:gap-2 items-center transition-colors"
           >
-            <Eye className="h-5 w-5" />
-            Memory Meter
+            <Eye className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span>Memory Meter</span>
           </button>
           <button
             onClick={exportPrayersToPDF}
-            className="p-4 bg-gray-900 border-2 border-gray-700 font-bold text-xs uppercase hover:border-yellow-300 text-center flex flex-col gap-2 items-center transition-colors"
+            className="p-3 sm:p-4 bg-gray-900 border-2 border-gray-700 font-bold text-[10px] sm:text-xs uppercase hover:border-yellow-300 active:bg-gray-800 text-center flex flex-col gap-1.5 sm:gap-2 items-center transition-colors"
           >
-            <Download className="h-5 w-5" />
-            Export Prayers
+            <Download className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span>Export Prayers</span>
           </button>
         </div>
 
         {/* MEMORY VERSE QUIZ */}
-        <section className="mt-12 bg-gray-900 border-4 border-yellow-300 p-8 space-y-6">
-          <h2 className="text-2xl font-black uppercase">Memory Verse Quiz (John 1:1-5)</h2>
+        <section className="mt-8 sm:mt-12 bg-gray-900 border-2 sm:border-4 border-yellow-300 p-4 sm:p-8 space-y-4 sm:space-y-6">
+          <h2 className="text-xl sm:text-2xl font-black uppercase">Memory Verse Quiz (John 1:1-5)</h2>
 
-          <div className="bg-black border-4 border-gray-800 p-6">
+          <div className="bg-black border-2 sm:border-4 border-gray-800 p-4 sm:p-6">
             <p className="text-lg italic font-serif text-gray-300 text-center leading-relaxed">
               &ldquo;{MEMORY_VERSE}&rdquo;
             </p>
@@ -796,7 +796,7 @@ May God guide your path.
               </button>
             ) : (
               <div
-                className={`p-6 border-4 ${quiz.correct ? 'border-green-500 bg-green-950' : 'border-gray-600 bg-gray-950'}`}
+                className={`p-4 sm:p-6 border-2 sm:border-4 ${quiz.correct ? 'border-green-500 bg-green-950' : 'border-gray-600 bg-gray-950'}`}
               >
                 <p className="font-black uppercase mb-2">
                   {quiz.correct ? '\u2713 PERFECT! YOU GOT IT!' : `${quiz.accuracy}% Match`}
