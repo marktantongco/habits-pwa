@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense, useRef } from 'react';
 import {
   Check,
   BookOpen,
@@ -38,6 +38,7 @@ import {
   Trophy,
   WifiOff,
 } from 'lucide-react';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -233,6 +234,143 @@ function generateId(): string {
   return `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
+/** Safe localStorage wrapper with error handling, retry, and logging */
+const STORAGE_RETRIES = 2;
+const STORAGE_RETRY_DELAY = 100;
+
+function safeGetItem(key: string, fallback: string | null = null): string | null {
+ try {
+    return localStorage.getItem(key);
+  } catch (err) {
+    console.warn(`[Habits Storage] Failed to read '${key}':`, err instanceof Error ? err.message : err);
+    return fallback;
+  }
+}
+
+function safeSetItem(key: string, value: string, retries = STORAGE_RETRIES): boolean {
+ for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (err) {
+      if (attempt < retries) {
+        console.warn(`[Habits Storage] Write attempt ${attempt + 1} failed for '${key}', retrying...`);
+        // Exponential backoff: 100ms, 200ms
+        const backoff = new Promise<void>(r => setTimeout(r, STORAGE_RETRY_DELAY * Math.pow(2, attempt)));
+        // Synchronous fallback - just try again immediately
+        continue;
+      }
+      console.error(`[Habits Storage] Failed to write '${key}' after ${retries} retries:`, err instanceof Error ? err.message : err);
+      return false;
+    }
+  }
+  return false;
+}
+
+function safeRemoveItem(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch (err) {
+    console.warn(`[Habits Storage] Failed to remove '${key}':`, err instanceof Error ? err.message : err);
+  }
+}
+
+function safeParseJSON<T>(json: string | null, fallback: T): T {
+  if (!json) return fallback;
+  try {
+    return JSON.parse(json) as T;
+  } catch (err) {
+    console.warn('[Habits Storage] Failed to parse JSON:', err instanceof Error ? err.message : err);
+    return fallback;
+  }
+}
+
+/** Focus trap hook for modals */
+function useFocusTrap(isOpen: boolean) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Save previously focused element
+    const previouslyFocused = document.activeElement as HTMLElement;
+
+    // Focus the first focusable element in the container
+    const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+    const firstFocusable = container.querySelector<HTMLElement>(focusableSelector);
+    if (firstFocusable) {
+      requestAnimationFrame(() => firstFocusable.focus());
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+
+      const focusableElements = Array.from(container.querySelectorAll<HTMLElement>(focusableSelector));
+      if (focusableElements.length === 0) return;
+
+      const first = focusableElements[0];
+      const last = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        // Trigger close by clicking the close button if available
+        const closeBtn = container.querySelector<HTMLButtonElement>('[aria-label*="Close"], [aria-label*="close"]');
+        if (closeBtn) closeBtn.click();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleEscape);
+      // Restore focus
+      if (previouslyFocused && previouslyFocused.focus) {
+        previouslyFocused.focus();
+      }
+    };
+  }, [isOpen]);
+
+  return containerRef;
+}
+
+/** Auto-scroll container to center a child element */
+function useAutoScroll<T extends HTMLElement>(trigger: unknown) {
+  const ref = useRef<T>(null);
+
+  useEffect(() => {
+    const container = ref.current;
+    if (!container) return;
+
+    const activeChild = container.querySelector<HTMLElement>('[data-active="true"]');
+    if (activeChild) {
+      const containerRect = container.getBoundingClientRect();
+      const childRect = activeChild.getBoundingClientRect();
+      const scrollLeft = container.scrollLeft + childRect.left - containerRect.left - (containerRect.width / 2) + (childRect.width / 2);
+      container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+    }
+  }, [trigger]);
+
+  return ref;
+}
+
 // ==================== THEME SELECTOR COMPONENT (Enhanced with animation & toast) ====================
 const ThemeSelector = React.memo(function ThemeSelector({ currentTheme, setTheme }: { currentTheme: string; setTheme: (t: string) => void }) {
   const [open, setOpen] = useState(false);
@@ -338,10 +476,20 @@ const ClipboardHistoryModal = React.memo(function ClipboardHistoryModal({
   onDeleteEntry: (id: string) => void;
   onClearAll: () => void;
 }) {
+  const trapRef = useFocusTrap(show);
+
+  useEffect(() => {
+    if (!show) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [show, onClose]);
+
   if (!show) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
-      <div className="rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl shadow-black/30 border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+      <div ref={trapRef} role="dialog" aria-modal="true" aria-label="Clipboard history"
+        className="rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl shadow-black/30 border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl sm:text-2xl flex items-center gap-2" style={{ color: 'var(--th-accent)' }}>
             <ClipboardList className="h-5 w-5" /> Clipboard
@@ -417,10 +565,20 @@ const ReflectBackModal = React.memo(function ReflectBackModal({
   dailyData: Record<string, DayData>;
   currentWeek: number;
 }) {
+  const trapRef = useFocusTrap(show);
+
+  useEffect(() => {
+    if (!show) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [show, onClose]);
+
   if (!show) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto modal-backdrop" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
-      <div className="rounded-2xl p-4 sm:p-6 max-w-4xl w-full my-8 shadow-2xl shadow-black/30 border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+      <div ref={trapRef} role="dialog" aria-modal="true" aria-label="Week reflection"
+        className="rounded-2xl p-4 sm:p-6 max-w-4xl w-full my-8 shadow-2xl shadow-black/30 border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl sm:text-2xl" style={{ color: 'var(--th-accent)' }}>
             Week {currentWeek} Reflection
@@ -467,10 +625,20 @@ const BadgesModal = React.memo(function BadgesModal({
   onClose: () => void;
   earnedBadges: string[];
 }) {
+  const trapRef = useFocusTrap(show);
+
+  useEffect(() => {
+    if (!show) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [show, onClose]);
+
   if (!show) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
-      <div className="rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl shadow-black/30 border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+      <div ref={trapRef} role="dialog" aria-modal="true" aria-label="Your badges"
+        className="rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl shadow-black/30 border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl sm:text-2xl" style={{ color: 'var(--th-accent)' }}>Your Badges</h2>
           <button onClick={onClose} className="p-2 rounded-lg transition-colors" style={{ backgroundColor: 'var(--th-bg-elevated)' }} aria-label="Close badges">
@@ -519,6 +687,15 @@ const MemorizationMeterModal = React.memo(function MemorizationMeterModal({
   score: number;
   attemptCount: number;
 }) {
+  const trapRef = useFocusTrap(show);
+
+  useEffect(() => {
+    if (!show) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [show, onClose]);
+
   if (!show) return null;
   const tier = score >= 80 ? 'master' : score >= 50 ? 'progress' : 'beginner';
   const tierLabel = score >= 80 ? 'Memory Master!' : score >= 50 ? 'Getting There!' : 'Keep Practicing!';
