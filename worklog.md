@@ -77,3 +77,33 @@ Applied 10 PWA-related fixes to the Habits Class devotional app.
 ### Lint Status
 - No source file errors (only pre-existing warnings in `deploy/dist` build artifacts and `habits1_extracted/` reference file)
 - Dev server compiled successfully
+---
+Task ID: 1
+Agent: Main Agent + full-stack-developer subagent
+Task: Comprehensive PWA audit, optimization, and deployment
+
+Work Log:
+- Audited all key files: next.config.ts, manifest.json, service-worker.js, layout.tsx, page.tsx (1823 lines), globals.css (515 lines)
+- Identified 10 issues: CRITICAL (SW path wrong, no install prompt, CSS wildcard transitions), HIGH (viewport-fit, apple-touch-icon, offline indicator, SW update notification), LOW (safe-area padding)
+- Fixed service worker registration path from /service-worker.js to /habits-pwa/service-worker.js with scope
+- Added BeforeInstallPromptEvent interface and PWA install banner with Download icon
+- Fixed CSS wildcard transitions (replaced *, *::before, *::after with targeted element list + scroll exclusion)
+- Added viewport-fit=cover meta tag for standalone PWA safe areas
+- Generated real PNG app icons (192px, 512px) via z-ai-generate
+- Updated manifest.json to use real icon file paths instead of SVG data URIs
+- Added apple-touch-icon link in layout.tsx
+- Added offline status indicator with WifiOff icon
+- Enhanced SW registration with updatefound handler for update notifications
+- Bumped service worker cache version from v2 to v3
+- Added pwa-safe-top/pwa-safe-bottom utility classes
+- Fixed duplicate Download import in lucide-react
+- Fixed postbuild.mjs ESM imports (require -> import)
+- Fixed Vercel deployment: set framework null, copy real routes-manifest.json from .next/
+- Build: zero errors, zero lint warnings in src/
+- Deployed to GitHub, GitHub Pages, Vercel
+
+Stage Summary:
+- All 10 fixes applied successfully
+- GitHub Pages: https://marktantongco.github.io/habits-pwa/
+- Vercel: https://habits-pwa-lyart.vercel.app (new alias: https://my-project-pearl-kappa-72.vercel.app)
+- PWA is now installable on mobile with proper service worker scope, install prompt banner, and offline support
