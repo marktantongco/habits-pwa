@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 export const metadata: Metadata = {
   title: "Habits Class: Daily Devotional",
   description: "Weekly Bible reading, S.O.A.P. journaling, prayer, and memory verse tracking",
-  manifest: "/manifest.json",
+  manifest: "/habits-pwa/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
