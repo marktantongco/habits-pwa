@@ -39,6 +39,8 @@ import {
   WifiOff,
 } from 'lucide-react';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { fullPush, fullPull, onSyncStatusChange, getSyncStatus, ensureTablesExist } from '@/lib/supabase-sync';
+import type { SyncPayload } from '@/lib/supabase-sync';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -749,6 +751,13 @@ const OnboardingModal = React.memo(function OnboardingModal({
 }) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
+  const trapRef = useFocusTrap(true);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') window.location.reload(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
 
   const handleNameSubmit = () => {
     if (name.trim()) setStep(1);
@@ -760,7 +769,7 @@ const OnboardingModal = React.memo(function OnboardingModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.97)' }}>
-      <div className="rounded-2xl p-6 sm:p-10 max-w-md w-full shadow-2xl border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+      <div ref={trapRef} role="dialog" aria-modal="true" aria-label="Welcome onboarding" className="rounded-2xl p-6 sm:p-10 max-w-md w-full shadow-2xl border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
         {step === 0 ? (
           <div className="space-y-6">
             <div className="flex items-center gap-3 mb-2">
@@ -868,9 +877,17 @@ const TeacherLoginModal = React.memo(function TeacherLoginModal({
 }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
+  const trapRef = useFocusTrap(true);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}>
-      <div className="rounded-2xl p-6 sm:p-8 max-w-sm w-full shadow-2xl shadow-black/30 border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+      <div ref={trapRef} role="dialog" aria-modal="true" aria-label="Teacher login" className="rounded-2xl p-6 sm:p-8 max-w-sm w-full shadow-2xl shadow-black/30 border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl" style={{ color: 'var(--th-accent)' }}>Teacher Access</h2>
           <button onClick={onClose} className="p-2 rounded-lg transition-colors" style={{ backgroundColor: 'var(--th-bg-elevated)' }} aria-label="Close teacher login">
@@ -923,8 +940,11 @@ const TeacherDashboardPanel = React.memo(function TeacherDashboardPanel({
     const students: Record<string, StudentInfo> = {};
     const seenIds = new Set<string>();
 
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
+    let storageLen = 0;
+    try { storageLen = localStorage.length; } catch { /* ignore */ }
+    for (let i = 0; i < storageLen; i++) {
+      let key: string | null = null;
+      try { key = localStorage.key(i); } catch { continue; }
       if (!key) continue;
       const match = key.match(/^(student_[^_]+_[^_]+)_habitsWeek\d+Daily$/);
       if (match) {
@@ -945,7 +965,7 @@ const TeacherDashboardPanel = React.memo(function TeacherDashboardPanel({
     }
 
     const oldKey = 'habitsWeek1Daily';
-    const oldData = localStorage.getItem(oldKey);
+    const oldData = safeGetItem(oldKey);
     if (oldData && Object.keys(students).length === 0) {
       try {
         const parsed = JSON.parse(oldData) as Record<string, DayData>;
@@ -966,6 +986,21 @@ const TeacherDashboardPanel = React.memo(function TeacherDashboardPanel({
   useEffect(() => {
     requestAnimationFrame(() => { loadStudentData(); });
   }, [currentWeek, loadStudentData]);
+
+  // Escape key handlers for sub-modals
+  useEffect(() => {
+    if (!parentEmailMode) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') { setParentEmailMode(false); setSelectedStudentForEmail(null); } };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [parentEmailMode]);
+
+  useEffect(() => {
+    if (!selectedStudent) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedStudent(null); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [selectedStudent]);
 
   const metrics = useMemo(() => {
     const entries = Object.entries(classData);
@@ -1249,6 +1284,10 @@ export default function HabitsTracker() {
   // Offline Status
   const [isOnline, setIsOnline] = useState(true);
 
+  // Supabase Sync Status
+  const [syncStatus, setSyncStatus] = useState<'idle'|'syncing'|'synced'|'error'|'offline'>('idle');
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+
   const setTheme = useCallback((themeId: string) => {
     setCurrentTheme(themeId);
     document.documentElement.setAttribute('data-theme', themeId);
@@ -1337,6 +1376,28 @@ export default function HabitsTracker() {
       setQuizHistory(loadedQuizHistory);
       setCheckedBy(savedCheckedBy);
       setClipboardHistory(loadedClipboard);
+
+      // Background: pull from Supabase if available
+      if (id) {
+        fullPull(id, 1).then(cloudData => {
+          if (!cloudData) return;
+          // Merge: use cloud data if local data is empty
+          if (cloudData.student && !name) {
+            setStudentName(cloudData.student.name);
+            if (cloudData.student.theme) setTheme(cloudData.student.theme);
+            if (cloudData.student.streak > loadedStreak) setStreakCount(cloudData.student.streak);
+          }
+        }).catch(() => {});
+      }
+    });
+  }, []);
+
+  // ==================== SUPABASE SYNC STATUS LISTENER ====================
+  useEffect(() => {
+    return onSyncStatusChange((status, _error) => {
+      setSyncStatus(status);
+      const info = getSyncStatus();
+      setLastSyncAt(info.lastSyncAt);
     });
   }, []);
 
@@ -1365,10 +1426,16 @@ export default function HabitsTracker() {
   const dismissInstallBanner = () => setShowInstallBanner(false);
 
   // ==================== OFFLINE STATUS ====================
+  const onlineRef = useRef(navigator.onLine);
   useEffect(() => {
-    setIsOnline(navigator.onLine);
-    const goOnline = () => setIsOnline(true);
-    const goOffline = () => setIsOnline(false);
+    const goOnline = () => {
+      onlineRef.current = true;
+      setIsOnline(true);
+    };
+    const goOffline = () => {
+      onlineRef.current = false;
+      setIsOnline(false);
+    };
     window.addEventListener('online', goOnline);
     window.addEventListener('offline', goOffline);
     return () => {
@@ -1391,10 +1458,26 @@ export default function HabitsTracker() {
       setSaveStatus('Saved \u2713');
       setLastSavedAt(new Date().toISOString());
       const clearTimer = setTimeout(() => setSaveStatus(''), 2000);
+
+      // Background push to Supabase (fire-and-forget)
+      if (studentId && navigator.onLine) {
+        fullPush({
+          studentId,
+          studentName,
+          theme: currentTheme,
+          streak: streakCount,
+          currentWeek,
+          dailyData,
+          quizHistory,
+          badges: earnedBadges,
+          clipboardHistory,
+        }).catch(() => {});
+      }
+
       return () => clearTimeout(clearTimer);
     }, 300);
     return () => clearTimeout(timer);
-  }, [dailyData, studentId, currentWeek]);
+  }, [dailyData, studentId, currentWeek, studentName, currentTheme, streakCount, quizHistory, earnedBadges, clipboardHistory]);
 
   // ==================== PERSIST CLIPBOARD HISTORY ====================
   useEffect(() => {
@@ -1614,6 +1697,7 @@ export default function HabitsTracker() {
   }, []);
 
   // ==================== COMPUTED VALUES ====================
+  const dayScrollRef = useAutoScroll<HTMLDivElement>(currentDay);
   const today = SCHEDULE[currentDay];
   const current = dailyData[today.day] || { readingComplete: false, soap: {}, prayers: {}, checkedBy: '' };
   const completedDays = useMemo(() => Object.keys(dailyData).filter(
@@ -1667,6 +1751,7 @@ export default function HabitsTracker() {
 
   // ==================== STUDENT VIEW ====================
   return (
+    <ErrorBoundary>
     <div className="min-h-screen overflow-x-hidden pb-[env(safe-area-inset-bottom)]" style={{ backgroundColor: 'var(--th-bg)', color: 'var(--th-text)' }}>
       <Suspense fallback={<div className="shimmer rounded-xl" style={{ width: 400, height: 300, margin: '20vh auto' }} />}>
         {showReflect && <ReflectBackModal show={showReflect} onClose={() => setShowReflect(false)} dailyData={dailyData} currentWeek={currentWeek} />}
@@ -1777,13 +1862,19 @@ export default function HabitsTracker() {
               {saveMessage && <span className="text-[10px] font-bold hidden sm:inline">{saveMessage}</span>}
             </button>
             <p className="font-bold text-[10px] sm:text-xs" style={{ color: saveStatus === 'Saved \u2713' ? 'var(--th-success)' : 'var(--th-text-muted)' }}>{saveStatus}</p>
+            <span className="text-[10px] flex items-center gap-1" style={{
+              color: syncStatus === 'synced' ? 'var(--th-success)' : syncStatus === 'error' ? 'var(--th-danger)' : syncStatus === 'syncing' ? 'var(--th-accent)' : 'var(--th-text-muted)'
+            }}>
+              <Cloud className={`h-3 w-3 ${syncStatus === 'syncing' ? 'animate-pulse' : ''}`} />
+              {syncStatus === 'synced' ? 'Synced' : syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'error' ? 'Sync failed' : 'Local'}
+            </span>
           </div>
         </div>
       </div>
 
       {/* Day Selector with Status System */}
       <nav className="border-b-2 sticky top-[44px] sm:top-[52px] z-40" style={{ borderColor: 'var(--th-border)', backgroundColor: 'var(--th-bg-elevated)' }}>
-        <div className="max-w-5xl mx-auto px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-1 sm:gap-2 overflow-x-auto no-scrollbar">
+        <div ref={dayScrollRef} className="max-w-5xl mx-auto px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-1 sm:gap-2 overflow-x-auto no-scrollbar">
           <button onClick={() => currentDay > 0 && setCurrentDay(currentDay - 1)} disabled={currentDay === 0} className="p-2 disabled:opacity-30 flex-shrink-0 rounded-lg transition-colors" style={{ color: 'var(--th-text)' }} aria-label="Previous day">
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -1826,6 +1917,7 @@ export default function HabitsTracker() {
                 <button
                   key={day}
                   onClick={() => setCurrentDay(idx)}
+                  data-active={isActive ? 'true' : undefined}
                   className="px-2 sm:px-3 py-2 font-bold uppercase text-[10px] sm:text-xs border-2 transition-all flex-shrink-0 rounded-lg active:scale-[0.97] flex flex-col items-center gap-0.5"
                   style={{ borderColor: borderStyle, backgroundColor: bgStyle, color: colorStyle }}
                 >
@@ -2083,5 +2175,6 @@ export default function HabitsTracker() {
 
       <ThemeSelector currentTheme={currentTheme} setTheme={setTheme} />
     </div>
+    </ErrorBoundary>
   );
 }
