@@ -1,6 +1,6 @@
 // Service Worker: Offline Support & Caching for Habits Class PWA
-const CACHE_NAME = 'habits-class-v2';
-const RUNTIME_CACHE = 'habits-class-runtime-v2';
+const CACHE_NAME = 'habits-class-v3';
+const RUNTIME_CACHE = 'habits-class-runtime-v3';
 const BASE_PATH = '/habits-pwa';
 
 // Assets to cache on install

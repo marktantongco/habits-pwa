@@ -24,6 +24,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning data-theme="midnight-gold">
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <link rel="apple-touch-icon" href="/habits-pwa/icon-192.png" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap"

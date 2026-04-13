@@ -36,7 +36,13 @@ import {
   Flame,
   Zap,
   Trophy,
+  WifiOff,
 } from 'lucide-react';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
 
 // ==================== THEME DATA (Enhanced with icons & descriptions) ====================
 type ThemeIcon = 'moon' | 'waves' | 'trees' | 'sun' | 'sparkles' | 'cloud';
@@ -1059,6 +1065,13 @@ export default function HabitsTracker() {
   // Last saved timestamp
   const [lastSavedAt, setLastSavedAt] = useState<string>('');
 
+  // PWA Install Prompt
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+
+  // Offline Status
+  const [isOnline, setIsOnline] = useState(true);
+
   const setTheme = useCallback((themeId: string) => {
     setCurrentTheme(themeId);
     document.documentElement.setAttribute('data-theme', themeId);
@@ -1072,7 +1085,19 @@ export default function HabitsTracker() {
     document.documentElement.setAttribute('data-theme', savedTheme);
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+      navigator.serviceWorker.register('/habits-pwa/service-worker.js', { scope: '/habits-pwa/' }).then((reg) => {
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'activated') {
+                setSaveStatus('Update available! Refresh to update.');
+                setTimeout(() => setSaveStatus(''), 5000);
+              }
+            });
+          }
+        });
+      }).catch(() => {});
     }
 
     let id: string | null = null;
@@ -1136,6 +1161,43 @@ export default function HabitsTracker() {
       setCheckedBy(savedCheckedBy);
       setClipboardHistory(loadedClipboard);
     });
+  }, []);
+
+  // ==================== PWA INSTALL PROMPT ====================
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as BeforeInstallPromptEvent);
+      // Show install banner after 3 seconds
+      setTimeout(() => setShowInstallBanner(true), 3000);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setInstallPrompt(null);
+      setShowInstallBanner(false);
+    }
+  };
+
+  const dismissInstallBanner = () => setShowInstallBanner(false);
+
+  // ==================== OFFLINE STATUS ====================
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+    const goOnline = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
   }, []);
 
   // ==================== AUTO-SAVE ====================
@@ -1435,6 +1497,31 @@ export default function HabitsTracker() {
         {showMeter && <MemorizationMeterModal show={showMeter} onClose={() => setShowMeter(false)} score={memScore} attemptCount={Object.keys(quizHistory).length} />}
         {showClipboard && <ClipboardHistoryModal show={showClipboard} onClose={() => setShowClipboard(false)} clipboardHistory={clipboardHistory} onDeleteEntry={deleteClipboardEntry} onClearAll={clearAllClipboard} />}
       </Suspense>
+      {/* Offline Status Indicator */}
+      {!isOnline && (
+        <div className="fixed top-0 left-0 right-0 z-[90] py-2 text-center text-[10px] font-bold uppercase tracking-widest pulse-warning" style={{ backgroundColor: 'var(--th-danger)', color: '#fff' }}>
+          <span className="flex items-center justify-center gap-1"><WifiOff className="h-3 w-3" /> Offline — Changes saved locally</span>
+        </div>
+      )}
+      {/* PWA Install Banner */}
+      {showInstallBanner && installPrompt && (
+        <div className="fixed top-0 left-0 right-0 z-[80] p-3 slide-in-right" style={{ backgroundColor: 'var(--th-accent)', color: 'var(--th-bg)' }}>
+          <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <Download className="h-5 w-5 flex-shrink-0" />
+              <p className="text-xs font-bold truncate">Install Habits Class for quick access</p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button onClick={handleInstallPWA} className="text-[10px] font-bold uppercase px-3 py-1.5 rounded-lg transition-all active:scale-[0.95]" style={{ backgroundColor: 'var(--th-bg)', color: 'var(--th-accent)' }}>
+                Install
+              </button>
+              <button onClick={dismissInstallBanner} className="p-1 rounded-lg transition-all active:scale-[0.95]" style={{ color: 'var(--th-bg)' }}>
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {showNameModal && studentId && <OnboardingModal currentTheme={currentTheme} onThemeSelect={setTheme} onComplete={handleNameSubmit} />}
       {showTeacherLogin && <TeacherLoginModal onClose={() => setShowTeacherLogin(false)} onLogin={() => { setIsTeacherMode(true); setShowTeacherLogin(false); }} />}
 
