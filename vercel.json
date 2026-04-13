@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/habits-pwa/:path*", "destination": "/:path*" }
+  ]
+}
