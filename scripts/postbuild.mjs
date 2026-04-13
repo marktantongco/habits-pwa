@@ -9,19 +9,19 @@
  * This script ensures those paths resolve correctly on both platforms.
  */
 
-import { cpSync, mkdirSync, existsSync, rmSync } from 'fs';
-import { join } from 'path';
+const fs = require('fs');
+const path = require('path');
 
-const OUT_DIR = join(process.cwd(), 'out');
-const SUB_DIR = join(OUT_DIR, 'habits-pwa');
+const OUT_DIR = path.join(process.cwd(), 'out');
+const SUB_DIR = path.join(OUT_DIR, 'habits-pwa');
 
 // Clean previous subdirectory if it exists
-if (existsSync(SUB_DIR)) {
-  rmSync(SUB_DIR, { recursive: true, force: true });
+if (fs.existsSync(SUB_DIR)) {
+  fs.rmSync(SUB_DIR, { recursive: true, force: true });
 }
 
 // Create the subdirectory
-mkdirSync(SUB_DIR, { recursive: true });
+fs.mkdirSync(SUB_DIR, { recursive: true });
 
 // Copy all contents from out/ into out/habits-pwa/
 const entries = [
@@ -37,17 +37,16 @@ const entries = [
 ];
 
 for (const entry of entries) {
-  const src = join(OUT_DIR, entry);
-  const dest = join(SUB_DIR, entry);
-  if (existsSync(src)) {
-    cpSync(src, dest, { recursive: true });
-    console.log(`  Copied: ${entry}`);
+  const src = path.join(OUT_DIR, entry);
+  const dest = path.join(SUB_DIR, entry);
+  if (fs.existsSync(src)) {
+    fs.cpSync(src, dest, { recursive: true });
+    console.log('  Copied: ' + entry);
   }
 }
 
 // Add .nojekyll for GitHub Pages
-const { writeFileSync } = await import('fs');
-writeFileSync(join(OUT_DIR, '.nojekyll'), '');
+fs.writeFileSync(path.join(OUT_DIR, '.nojekyll'), '');
 console.log('  Created: .nojekyll');
 
 console.log('\nPost-build complete: out/habits-pwa/ ready for Vercel');
