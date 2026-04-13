@@ -15,9 +15,8 @@ node_modules
 
 # next.js
 /.next/
+/_next/
 /out/
-# Allow out for GitHub Pages
-!/out/
 
 # production
 /build
@@ -37,7 +36,6 @@ yarn-error.log*
 
 # vercel
 .vercel
-
 
 # typescript
 *.tsbuildinfo
