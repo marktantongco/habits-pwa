@@ -704,7 +704,7 @@ const MemorizationMeterModal = React.memo(function MemorizationMeterModal({
   const tierColor = score >= 80 ? 'var(--th-success)' : score >= 50 ? 'var(--th-accent)' : 'var(--th-danger)';
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}>
-      <div className="rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl shadow-black/30 border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
+      <div ref={trapRef} role="dialog" aria-modal="true" aria-label="Memorization meter" className="rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl shadow-black/30 border-2 modal-content" style={{ backgroundColor: 'var(--th-bg)', borderColor: 'var(--th-accent)' }}>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl sm:text-2xl" style={{ color: 'var(--th-accent)' }}>Memorization Meter</h2>
           <button onClick={onClose} className="p-2 rounded-lg transition-colors" style={{ backgroundColor: 'var(--th-bg-elevated)' }} aria-label="Close meter">
