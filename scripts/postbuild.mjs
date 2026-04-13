@@ -4,15 +4,14 @@
  * so that the static export works on BOTH:
  * - GitHub Pages: files at branch root (served at /habits-pwa/)
  * - Vercel: files in out/habits-pwa/ subdirectory (served at /habits-pwa/)
- *
- * With basePath: '/habits-pwa', Next.js generates HTML referencing /habits-pwa/_next/...
- * This script ensures those paths resolve correctly on both platforms.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const OUT_DIR = path.join(process.cwd(), 'out');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const OUT_DIR = path.join(__dirname, '..', 'out');
 const SUB_DIR = path.join(OUT_DIR, 'habits-pwa');
 
 // Clean previous subdirectory if it exists
@@ -32,6 +31,8 @@ const entries = [
   'service-worker.js',
   'robots.txt',
   'logo.svg',
+  'icon-192.png',
+  'icon-512.png',
   '_next',
   '_not-found',
 ];
