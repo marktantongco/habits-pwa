@@ -50,16 +50,12 @@ for (const entry of entries) {
 fs.writeFileSync(path.join(OUT_DIR, '.nojekyll'), '');
 console.log('  Created: .nojekyll');
 
-// Create routes-manifest.json for Vercel compatibility
-const routesManifest = {
-  version: 3,
-  pages: { '/': { initialRevalidateSeconds: false, srcRoute: '/' } },
-  dynamicRoutes: {},
-  notFoundRoutes: [],
-  preview: { previewModeId: '', previewModeSigningKey: '', previewModeEncryptionKey: '' }
-};
-fs.writeFileSync(path.join(OUT_DIR, 'routes-manifest.json'), JSON.stringify(routesManifest, null, 2));
-fs.writeFileSync(path.join(SUB_DIR, 'routes-manifest.json'), JSON.stringify(routesManifest, null, 2));
-console.log('  Created: routes-manifest.json');
+// Copy real routes-manifest.json from .next/ for Vercel compatibility
+const realManifest = path.join(__dirname, '..', '.next', 'routes-manifest.json');
+if (fs.existsSync(realManifest)) {
+  fs.cpSync(realManifest, path.join(OUT_DIR, 'routes-manifest.json'));
+  fs.cpSync(realManifest, path.join(SUB_DIR, 'routes-manifest.json'));
+  console.log('  Created: routes-manifest.json');
+}
 
 console.log('\nPost-build complete: out/habits-pwa/ ready for Vercel');
